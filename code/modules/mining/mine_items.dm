@@ -1384,51 +1384,99 @@ GLOBAL_LIST_INIT_TYPED(total_extraction_beacons, /obj/structure/extraction_point
 	name = "weight machine"
 	desc = "Just looking at this thing makes you feel tired."
 	icon = 'icons/obj/mining.dmi'
-	icon_state = "fitnessweight"
-	density = TRUE
+	icon_state = "weightlifter"
+	density = FALSE
 	anchored = TRUE
 
-/obj/structure/weightlifter/attack_hand(var/mob/living/carbon/human/user)
+	var/being_used = FALSE
+	var/weight = 1
+	var/max_weight = 5
+
+	var/list/success_message = list("with great effort",
+		"while straining hard",
+		"without much trouble",
+		"with ease")
+
+	var/list/fail_message = list(", lifting them part of the way before letting them drop",
+		", unable to even budge them")
+
+/obj/structure/weightlifter/feedback_hints(mob/user, distance, is_adjacent)
+	. = ..()
+	. += SPAN_NOTICE("It is currently set to weight level [weight] out of [max_weight].")
+
+/obj/structure/weightlifter/verb/adjust_weight()
+	set name = "Adjust weight"
+	set category = "Object"
+	set src in view(1)
+
+	if(being_used)
+		to_chat(src, SPAN_WARNING("You cannot adjust \the [src] while it is being used."))
+		return FALSE
+
+	var/list/weight_options = list()
+
+	for(var/i = 1 to max_weight)
+		weight_options["Weight level [i]"] = i
+
+	var/selected_weight = tgui_input_list(usr, "Select the machine's weight level.", "Adjust Weight", weight_options)
+
+	if(isnull(selected_weight))
+		return FALSE
+
+	var/new_weight = weight_options[selected_weight]
+
+	if(new_weight == weight)
+		to_chat(usr, SPAN_NOTICE("\The [src] is already set to weight level [weight]."))
+		return FALSE
+
+	weight = new_weight
+
+	usr.visible_message(SPAN_NOTICE("\The [usr] adjusts \the [src]'s weight level."), SPAN_NOTICE("You set \the [src] to weight level [weight]."))
+
+	playsound(src, 'sound/machines/click.ogg', 50, TRUE)
+	return TRUE
+
+/obj/structure/weightlifter/attack_hand(mob/living/carbon/human/user)
 	if(!istype(user))
 		return
-	if(in_use)
-		to_chat(user, "It's already in use - wait a bit.")
+
+	var/synth = user.isSynthetic()
+	if(user.loc != src.loc)
+		to_chat(user, SPAN_WARNING("You must be on the weight machine to use it."))
+		return
+	if(!synth && user.nutrition < 50)
+		to_chat(user, SPAN_WARNING("You need more energy to lift weights. Go eat something."))
+		return
+	if(being_used)
+		to_chat(user, SPAN_WARNING("The weight machine is already in use by somebody else."))
 		return
 	else
-		in_use = TRUE
-		icon_state = "fitnessweight-c"
-		user.dir = SOUTH
-		user.Stun(4)
-		user.forceMove(src.loc)
-		var/image/W = image('icons/obj/mining.dmi',"fitnessweight-w")
-		W.layer = 5.1
-		AddOverlays(W)
-		var/bragmessage = pick("pushing it to the limit","going into overdrive","burning with determination","rising up to the challenge", "getting strong now","getting ripped")
-		user.visible_message(SPAN_NOTICE("<B>[user] is [bragmessage]!</B>"))
-		var/reps = 0
-		user.pixel_y = 5
-		while (reps++ < 6)
-			if (user.loc != src.loc)
-				break
-
-			for (var/innerReps = max(reps, 1), innerReps > 0, innerReps--)
-				sleep(3)
-				animate(user, pixel_y = (user.pixel_y == 3) ? 5 : 3, time = 3)
-
-			playsound(user,'sound/effects/spring.ogg', 60, 1)
-
-		sleep(3)
-		animate(user, pixel_y = 2, time = 3)
-		sleep(3)
-		playsound(user, 'sound/machines/click.ogg', 60, 1)
-		in_use = 0
-		animate(user, pixel_y = 0, time = 3)
-		var/finishmessage = pick("You feel stronger!","You feel like you can take on the world!","You feel robust!","You feel indestructible!")
-		icon_state = "fitnessweight"
-		CutOverlays(W)
-		to_chat(user, SPAN_NOTICE("[finishmessage]"))
-		user.adjustNutritionLoss(5)
-		user.adjustHydrationLoss(5)
+		being_used = TRUE
+		playsound(src.loc, 'sound/effects/weightlifter.ogg', 50, 1)
+		user.set_dir(SOUTH)
+		flick("[icon_state]_[weight]", src)
+		if(do_after(user, (2 + weight) SECONDS, src, DO_DEFAULT | DO_BOTH_UNIQUE_ACT))
+			playsound(src.loc, 'sound/effects/weightdrop.ogg', 25, 1)
+			var/skill = 2 //max_weight * user.get_skill_value(SKILL_HAULING)/SKILL_MAX
+			var/message
+			if(skill < weight)
+				if(weight - skill > max_weight/2)
+					if(prob(50))
+						message = ", getting hurt in the process"
+						user.apply_damage(5)
+					else
+						message = "; this does not look safe"
+				else
+					message = fail_message[min(1 + round(weight - skill), length(fail_message))]
+				user.visible_message(SPAN_NOTICE("\The [user] fails to lift the weights[message]."), SPAN_NOTICE("You fail to lift the weights[message]."))
+			else
+				if(!synth)
+					var/adj_weight = weight * 5
+					user.adjustNutritionLoss(-(adj_weight * HUNGER_FACTOR))
+					user.adjustNutritionLoss(-(adj_weight * THIRST_FACTOR))
+				message = success_message[min(1 + round(skill - weight), length(fail_message))]
+				user.visible_message(SPAN_NOTICE("\The [user] lift\s the weights [message]."), SPAN_NOTICE("You lift the weights [message]."))
+		being_used = FALSE
 
 /******************************Seismic Charge*******************************/
 
