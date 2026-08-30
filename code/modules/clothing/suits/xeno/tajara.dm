@@ -321,6 +321,31 @@
 		BOMB = ARMOR_BOMB_MINOR
 	)
 
+/obj/item/clothing/suit/armor/tajaran_snowsuit
+	name = "\improper Nav'korr armored snowsuit"
+	desc = "A thick snowsuit with internal armor plating designed to protect its wearer from Adhomai's harsh climate and grim conflicts."
+	desc_extended = "The Nav'korr armored snowsuit is a vital piece of equipment for any Adhomian military. Designed to balance mobility, \
+	environmental protection, and armor, it is the pinnacle of modern Tajaran body armor. As such, it has become mass produced and near ubiquitous among \
+	the industrialized nations of Adhomai and her colonies. While many variants exist with different camo patterns and environmental accommodations, \
+	such as the famed tropical suit used on Hro'zamal, the snowsuit remains the most widely used."
+	icon = 'icons/obj/tajara_items.dmi'
+	icon_state = "snowsuit"
+	item_state = "snowsuit"
+	contained_sprite = TRUE
+	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|ARMS|FEET|HANDS
+	cold_protection = UPPER_TORSO|LOWER_TORSO|LEGS|ARMS|FEET|HANDS
+	min_cold_protection_temperature = SPACE_SUIT_MIN_COLD_PROTECTION_TEMPERATURE
+	protects_against_weather = TRUE
+	species_restricted = list(BODYTYPE_TAJARA)
+	flags_inv = HIDEJUMPSUIT|HIDETAIL
+	armor = list(
+		MELEE = ARMOR_MELEE_KEVLAR,
+		BULLET = ARMOR_BALLISTIC_CARBINE,
+		LASER = ARMOR_LASER_SMALL,
+		ENERGY = ARMOR_ENERGY_MINOR,
+		BOMB = ARMOR_BOMB_PADDED
+	)
+
 /obj/item/clothing/suit/storage/tajaran/pra_jacket
 	name = "hadiist surplus jacket"
 	desc = "An olive surplus jacket worn by the forces of the Grand People's Army."
