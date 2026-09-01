@@ -16,13 +16,20 @@
 	)
 
 	job_access = list(ACCESS_JOURNALIST, ACCESS_MAINT_TUNNELS)
-	alt_titles = list("Freelance Journalist")
+	alt_titles = list("Independent Reporter", "Corporate Journalist", "Independent Journalist", "Media Broadcaster")
 	alt_factions = list(
 		"Corporate Reporter" = list("NanoTrasen", "Idris Incorporated", "Hephaestus Industries", "Orion Express", "Zavodskoi Interstellar", "Zeng-Hu Pharmaceuticals", "Private Military Contracting Group", "Stellar Corporate Conglomerate"),
-		"Freelance Journalist" = list("Independent")
+		"Corporate Journalist" = list("NanoTrasen", "Idris Incorporated", "Hephaestus Industries", "Orion Express", "Zavodskoi Interstellar", "Zeng-Hu Pharmaceuticals", "Private Military Contracting Group", "Stellar Corporate Conglomerate"),
+		"Independent Reporter" = list("Independent"),
+		"Independent Journalist" = list("Independent"),
+		"Media Broadcaster" = list("NanoTrasen", "Idris Incorporated", "Hephaestus Industries", "Orion Express", "Zavodskoi Interstellar", "Zeng-Hu Pharmaceuticals", "Private Military Contracting Group", "Stellar Corporate Conglomerate", "Independent")
 	)
-	alt_outfits = list("Freelance Journalist" = /obj/outfit/job/journalistf)
-	title_accesses = list("Corporate Reporter" = list(ACCESS_MEDICAL, ACCESS_SEC_DOORS, ACCESS_RESEARCH, ACCESS_ENGINE))
+
+	title_accesses = list(
+		"Corporate Reporter" = list(ACCESS_MEDICAL, ACCESS_SEC_DOORS, ACCESS_RESEARCH, ACCESS_ENGINE),
+		"Corporate Journalist" = list(ACCESS_MEDICAL, ACCESS_SEC_DOORS, ACCESS_RESEARCH, ACCESS_ENGINE)
+	)
+
 	outfit = /obj/outfit/job/journalist
 	blacklisted_species = list(SPECIES_VAURCA_BREEDER)
 
@@ -30,8 +37,8 @@
 	name = "Corporate Reporter"
 	jobtype = /datum/job/journalist
 
-	uniform = /obj/item/clothing/under/suit_jacket/red
-	shoes = /obj/item/clothing/shoes/sneakers/black
+	uniform = /obj/item/clothing/under/librarian
+	shoes = /obj/item/clothing/shoes/laceup/brown
 
 	tab_pda = /obj/item/modular_computer/handheld/pda/civilian/librarian
 	wristbound = /obj/item/modular_computer/handheld/wristbound/preset/pda/civilian/librarian
@@ -54,11 +61,11 @@
 	)
 
 /obj/outfit/job/journalistf
-	name = "Freelance Journalist"
+	name = "Independent Journalist"
 	jobtype = /datum/job/journalist
 
 	uniform = /obj/item/clothing/under/suit_jacket/red
-	shoes = /obj/item/clothing/shoes/sneakers/black
+	shoes = /obj/item/clothing/shoes/laceup/brown
 
 	tab_pda = /obj/item/modular_computer/handheld/pda/civilian/librarian
 	wristbound = /obj/item/modular_computer/handheld/wristbound/preset/pda/civilian/librarian

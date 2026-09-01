@@ -421,11 +421,11 @@
 	name = "fuel tank"
 	supplier = "hephaestus"
 	description = "A tank filled with welding fuel."
-	price = 10
+	price = 600
 	items = list(
 		/obj/structure/reagent_dispensers/fueltank
 	)
-	access = ACCESS_ENGINE
+	access = 0
 	container_type = "box"
 	groupable = TRUE
 	spawn_amount = 1
@@ -435,7 +435,7 @@
 	name = "extinguisher tank"
 	supplier = "hephaestus"
 	description = "A tank filled with extinguisher fluid."
-	price = 10
+	price = 600
 	items = list(
 		/obj/structure/reagent_dispensers/extinguisher
 	)
@@ -809,20 +809,6 @@
 	)
 	access = 0
 	container_type = "crate"
-	groupable = TRUE
-	spawn_amount = 1
-
-/singleton/cargo_item/watertank
-	category = "engineering"
-	name = "watertank"
-	supplier = "hephaestus"
-	description = "A tank filled with water."
-	price = 10
-	items = list(
-		/obj/structure/reagent_dispensers/watertank
-	)
-	access = ACCESS_ENGINE
-	container_type = "box"
 	groupable = TRUE
 	spawn_amount = 1
 

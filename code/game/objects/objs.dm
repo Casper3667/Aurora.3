@@ -106,6 +106,10 @@
 	var/persistent_objects_author_ckey = null
 	// Expiration time used when saving/updating a persistent type, this can be changed depending on the use case by assigning a new value
 	var/persistent_objects_expiration_time_days = PERSISTENT_DEFAULT_EXPIRATION_DAYS
+	// Database timestamp when the tracked object was created
+	var/persistent_objects_created_at = null
+	// Database timestamp when the tracked object will expire
+	var/persistent_objects_expires_at = null
 	/* END PERSISTENCE VARS */
 
 	/// for easy reference of talking atoms
@@ -258,7 +262,10 @@
 	return
 
 /mob/proc/unset_machine()
+	var/was_viewing_machine_remote_view = is_viewing_camera() || is_viewing_overmap()
 	src.machine = null
+	if(was_viewing_machine_remote_view)
+		reset_view(null)
 
 /mob/proc/set_machine(var/obj/O)
 	if(src.machine)
@@ -392,8 +399,11 @@
 	clean_blood()
 	color = initial(color)
 
-/obj/proc/output_spoken_message(var/message, var/message_verb = "transmits", var/display_overhead = TRUE, var/overhead_time = 2 SECONDS)
-	audible_message("\The <b>[src.name]</b> [message_verb], \"[message]\"")
+/obj/proc/output_spoken_message(var/message, var/message_verb = "transmits", var/display_overhead = TRUE, var/overhead_time = 2 SECONDS, var/display_chat = TRUE)
+	if(display_chat)
+		var/rendered_message = "\The <b>[src.name]</b> [message_verb], \"[message]\""
+		rendered_message = format_spoken_chat_message(rendered_message)
+		audible_message(rendered_message)
 	if(display_overhead)
 		var/list/hearers = get_hearers_in_view(7, src)
 		var/list/clients_in_hearers = list()
@@ -402,6 +412,10 @@
 				clients_in_hearers += mob.client
 		if(length(clients_in_hearers))
 			langchat_speech(message, hearers)
+
+/// Override to apply object-specific formatting to spoken chat output without affecting overhead messages.
+/obj/proc/format_spoken_chat_message(var/message)
+	return message
 
 /// Override this to customize the effects an activated signaler has.
 /obj/proc/do_signaler()
