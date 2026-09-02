@@ -1,6 +1,7 @@
 /obj/structure/closet
 	name = "closet"
 	desc = "It's a basic storage unit."
+	mass = 60
 	icon = 'icons/obj/containers/closet.dmi'
 	icon_state = "generic"
 	hitsound = 'sound/effects/metalhit.ogg'
@@ -83,6 +84,17 @@
 
 	/// If its a plain grey closet or crate, you can use the paint sprayer on it ONCE to change its appearance.
 	var/can_label = FALSE
+
+/**
+ * Closed storage is moved as a single load, so its effective mass includes
+ * everything packed inside it. Nested containers naturally include their own
+ * contents through get_effective_mass().
+ */
+/obj/structure/closet/get_effective_mass()
+	. = ..()
+	for(var/atom/movable/stored_thing in contents)
+		if(!stored_thing.anchored)
+			. += stored_thing.get_effective_mass()
 
 /obj/structure/closet/mechanics_hints(mob/user, distance, is_adjacent)
 	. += ..()

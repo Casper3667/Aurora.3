@@ -5,6 +5,7 @@
 /obj/structure/closet/crate
 	name = "crate"
 	desc = "A rectangular steel crate."
+	mass = 50
 	icon = 'icons/obj/containers/crate.dmi'
 	icon_state = "crate"
 	climbable = TRUE
@@ -252,6 +253,7 @@
 	)
 
 /obj/structure/closet/crate/plastic
+	mass = 25
 	name = "plastic crate"
 	desc = "A rectangular plastic crate."
 	icon_state = "plastic_crate"
