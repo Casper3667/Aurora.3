@@ -1408,6 +1408,8 @@ GLOBAL_LIST_INIT_TYPED(total_extraction_beacons, /obj/structure/extraction_point
 	var/being_used = FALSE
 	var/weight = 1
 	var/max_weight = 5
+	/// The mass represented by each weight setting, in kilograms.
+	var/weight_per_level = 40
 
 	var/list/success_message = list("with great effort",
 		"while straining hard",
@@ -1419,7 +1421,7 @@ GLOBAL_LIST_INIT_TYPED(total_extraction_beacons, /obj/structure/extraction_point
 
 /obj/structure/weightlifter/feedback_hints(mob/user, distance, is_adjacent)
 	. = ..()
-	. += SPAN_NOTICE("It is currently set to weight level [weight] out of [max_weight].")
+	. += SPAN_NOTICE("It is currently set to [weight * weight_per_level] kg (level [weight] out of [max_weight]).")
 
 /obj/structure/weightlifter/verb/adjust_weight()
 	set name = "Adjust weight"
@@ -1427,13 +1429,13 @@ GLOBAL_LIST_INIT_TYPED(total_extraction_beacons, /obj/structure/extraction_point
 	set src in view(1)
 
 	if(being_used)
-		to_chat(src, SPAN_WARNING("You cannot adjust \the [src] while it is being used."))
+		to_chat(usr, SPAN_WARNING("You cannot adjust \the [src] while it is being used."))
 		return FALSE
 
 	var/list/weight_options = list()
 
 	for(var/i = 1 to max_weight)
-		weight_options["Weight level [i]"] = i
+		weight_options["[i * weight_per_level] kg (level [i])"] = i
 
 	var/selected_weight = tgui_input_list(usr, "Select the machine's weight level.", "Adjust Weight", weight_options)
 
@@ -1448,7 +1450,7 @@ GLOBAL_LIST_INIT_TYPED(total_extraction_beacons, /obj/structure/extraction_point
 
 	weight = new_weight
 
-	usr.visible_message(SPAN_NOTICE("\The [usr] adjusts \the [src]'s weight level."), SPAN_NOTICE("You set \the [src] to weight level [weight]."))
+	usr.visible_message(SPAN_NOTICE("\The [usr] adjusts \the [src]'s weight level."), SPAN_NOTICE("You set \the [src] to [weight * weight_per_level] kg."))
 
 	playsound(src, 'sound/machines/click.ogg', 50, TRUE)
 	return TRUE
@@ -1474,24 +1476,28 @@ GLOBAL_LIST_INIT_TYPED(total_extraction_beacons, /obj/structure/extraction_point
 		flick("[icon_state]_[weight]", src)
 		if(do_after(user, (2 + weight) SECONDS, src, DO_DEFAULT | DO_BOTH_UNIQUE_ACT))
 			playsound(src.loc, 'sound/effects/weightdrop.ogg', 25, 1)
-			var/skill = 2 //max_weight * user.get_skill_value(SKILL_HAULING)/SKILL_MAX
+			var/lift_capacity = user.get_lift_capacity()
+			var/selected_mass = weight * weight_per_level
 			var/message
-			if(skill < weight)
-				if(weight - skill > max_weight/2)
+			if(lift_capacity < selected_mass)
+				var/shortfall = selected_mass - lift_capacity
+				if(shortfall > (max_weight * weight_per_level) / 2)
 					if(prob(50))
 						message = ", getting hurt in the process"
 						user.apply_damage(5)
 					else
 						message = "; this does not look safe"
 				else
-					message = fail_message[min(1 + round(weight - skill), length(fail_message))]
+					var/failure_index = clamp(1 + round(shortfall / weight_per_level), 1, length(fail_message))
+					message = fail_message[failure_index]
 				user.visible_message(SPAN_NOTICE("\The [user] fails to lift the weights[message]."), SPAN_NOTICE("You fail to lift the weights[message]."))
 			else
 				if(!synth)
 					var/adj_weight = weight * 5
-					user.adjustNutritionLoss(-(adj_weight * HUNGER_FACTOR))
-					user.adjustNutritionLoss(-(adj_weight * THIRST_FACTOR))
-				message = success_message[min(1 + round(skill - weight), length(fail_message))]
+					user.adjustNutritionLoss(adj_weight * HUNGER_FACTOR)
+					user.adjustHydrationLoss(adj_weight * THIRST_FACTOR)
+				var/success_index = clamp(1 + round((lift_capacity - selected_mass) / weight_per_level), 1, length(success_message))
+				message = success_message[success_index]
 				user.visible_message(SPAN_NOTICE("\The [user] lift\s the weights [message]."), SPAN_NOTICE("You lift the weights [message]."))
 		being_used = FALSE
 
