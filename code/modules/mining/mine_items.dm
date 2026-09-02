@@ -1397,6 +1397,172 @@ GLOBAL_LIST_INIT_TYPED(total_extraction_beacons, /obj/structure/extraction_point
 		flick("[icon_state]2", src)
 		playsound(get_turf(src), 'sound/weapons/bladeparry.ogg', 25, 1, -1)
 
+/obj/item/gym_dumbbell
+	name = "dumbbell"
+	desc = "A heavy piece of metal used for weight training."
+	icon = 'maps/away/ships/tajara/circus/circus_sprites.dmi'
+	icon_state = "dumbbell"
+	item_state = "dumbbell"
+	contained_sprite = TRUE
+	w_class = 4
+	mass = 10
+	mass_based_slowdown = TRUE
+	action_button_name = "Lift Dumbbell"
+
+	/// Prevents a second repetition from starting while this dumbbell is already being lifted.
+	var/being_lifted = FALSE
+
+/obj/item/gym_dumbbell/twenty
+	name = "heavy dumbbell"
+	desc = "A particularly heavy piece of metal used for weight training."
+	mass = 20
+
+/obj/item/gym_dumbbell/barbell
+	name = "40 kg barbell"
+	desc = "A long steel bar fitted with heavy weights for strength training."
+	icon_state = "barbell"
+	item_state = "barbell"
+	w_class = 5
+	mass = 40
+	action_button_name = "Lift Barbell"
+
+/obj/item/gym_dumbbell/barbell/sixty
+	name = "60 kg barbell"
+	mass = 60
+
+/obj/item/gym_dumbbell/barbell/eighty
+	name = "80 kg barbell"
+	mass = 80
+
+/obj/item/gym_dumbbell/barbell/hundred
+	name = "100 kg barbell"
+	mass = 100
+
+/obj/item/gym_dumbbell/barbell/hundredforty
+	name = "140 kg barbell"
+	mass = 140
+
+/obj/item/gym_dumbbell/barbell/hundredeighty
+	name = "180 kg barbell"
+	mass = 180
+
+/obj/item/gym_dumbbell/barbell/twohundred
+	name = "200 kg barbell"
+	mass = 200
+
+/obj/item/gym_dumbbell/barbell/twohundredtwenty
+	name = "220 kg barbell"
+	mass = 220
+
+/obj/item/gym_dumbbell/barbell/twohundredforty
+	name = "240 kg barbell"
+	mass = 240
+
+/obj/item/gym_dumbbell/barbell/twohundredsixty
+	name = "260 kg barbell"
+	mass = 260
+
+/obj/item/gym_dumbbell/barbell/threehundred
+	name = "300 kg barbell"
+	mass = 300
+
+/obj/item/gym_dumbbell/barbell/do_additional_pickup_checks(mob/user)
+	if(!..())
+		return FALSE
+	if(user.get_lift_capacity() < mass && !(user.status_flags & GODMODE))
+		to_chat(user, SPAN_WARNING("\The [src] is too heavy for you to lift."))
+		return FALSE
+	return do_mass_based_pickup_delay(user)
+
+/obj/item/gym_dumbbell/feedback_hints(mob/user, distance, is_adjacent)
+	. = ..()
+	. += "It weighs [mass] kilograms."
+
+/obj/item/gym_dumbbell/attack_self(mob/living/carbon/human/user)
+	if(!istype(user))
+		return
+	if(user.get_active_hand() != src && user.get_inactive_hand() != src)
+		to_chat(user, SPAN_WARNING("You need to hold \the [src] to lift it."))
+		return
+	if(user.incapacitated())
+		return
+	if(being_lifted)
+		to_chat(user, SPAN_WARNING("You are already lifting \the [src]."))
+		return
+
+	var/synth = user.isSynthetic()
+	if(!synth && user.nutrition < 50)
+		to_chat(user, SPAN_WARNING("You need more energy to lift weights. Go eat something."))
+		return
+
+	var/lift_capacity = user.get_lift_capacity()
+	var/strain = mass / lift_capacity
+	// A lightly loaded rep is brisk, while a rep at the user's limit takes two seconds each way.
+	var/half_rep_time = clamp(0.35 SECONDS + (strain * 1.65 SECONDS), 0.4 SECONDS, 2 SECONDS)
+	var/lift_height = strain <= 1 ? 8 : 3
+
+	being_lifted = TRUE
+	user.visible_message(SPAN_NOTICE("\The [user] starts a repetition with \the [src]."), SPAN_NOTICE("You start lifting \the [src]."))
+
+	if(!do_after(user, half_rep_time, src, DO_DEFAULT | DO_BOTH_UNIQUE_ACT) || !set_lift_height(user, lift_height))
+		finish_lift(user)
+		return
+
+	if(!do_after(user, half_rep_time, src, DO_DEFAULT | DO_BOTH_UNIQUE_ACT))
+		finish_lift(user)
+		return
+
+	finish_lift(user)
+	if(strain > 1)
+		user.visible_message(SPAN_WARNING("\The [user] only manages a partial repetition with \the [src]."), SPAN_WARNING("The weight is beyond your lifting capacity; you only manage a partial repetition."))
+		return
+
+	if(!synth)
+		var/exertion = max(1, round(mass / 8))
+		user.adjustNutritionLoss(exertion * HUNGER_FACTOR)
+		user.adjustHydrationLoss(exertion * THIRST_FACTOR)
+
+	var/effort_message
+	if(strain >= 0.8)
+		effort_message = "with great effort"
+	else if(strain >= 0.5)
+		effort_message = "while visibly straining"
+	else if(strain >= 0.25)
+		effort_message = "without much trouble"
+	else
+		effort_message = "with ease"
+	user.visible_message(SPAN_NOTICE("\The [user] completes a repetition with \the [src] [effort_message]."), SPAN_NOTICE("You complete the repetition [effort_message]."))
+
+/// Moves the dumbbell's held overlay without moving the user or their other equipment.
+/obj/item/gym_dumbbell/proc/set_lift_height(mob/living/carbon/human/user, height)
+	if(loc != user)
+		return FALSE
+
+	var/image/held_overlay
+	if(user.l_hand == src)
+		user.update_inv_l_hand(FALSE)
+		held_overlay = user.overlays_raw[L_HAND_LAYER]
+	else if(user.r_hand == src)
+		user.update_inv_r_hand(FALSE)
+		held_overlay = user.overlays_raw[R_HAND_LAYER]
+	else
+		return FALSE
+
+	if(!held_overlay)
+		return FALSE
+	held_overlay.pixel_y += height
+	user.update_icon()
+	return TRUE
+
+/obj/item/gym_dumbbell/proc/finish_lift(mob/living/carbon/human/user)
+	being_lifted = FALSE
+	if(!user || QDELETED(user))
+		return
+	if(user.l_hand == src)
+		user.update_inv_l_hand()
+	else if(user.r_hand == src)
+		user.update_inv_r_hand()
+
 /obj/structure/weightlifter
 	name = "weight machine"
 	desc = "Just looking at this thing makes you feel tired."
