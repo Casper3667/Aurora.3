@@ -2,6 +2,19 @@
 Exercise Verbs
 */
 
+/mob/living/carbon/human/verb/bench_press_person()
+	set name = "Bench Press Carried Person"
+	set desc = "Bench press someone you are carrying over your shoulders."
+	set category = "IC.Maneuver"
+
+	for(var/obj/item/grab/grab in list(l_hand, r_hand))
+		if(istype(grab, /obj/item/grab/offhand))
+			continue
+		if(grab.wielded && grab.affecting?.buckled_to == src)
+			grab.bench_press_carried_person(src)
+			return
+	to_chat(src, SPAN_WARNING("You need to be fireman carrying someone before you can bench press them."))
+
 /mob/living/carbon/human/verb/pushup()
 	set name = "Do Pushup"
 	set desc = "Makes you do a pushup."

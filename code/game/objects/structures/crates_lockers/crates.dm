@@ -32,6 +32,7 @@
 /obj/structure/closet/crate/mechanics_hints(mob/user, distance, is_adjacent)
 	. += ..()
 	. += "Crates can be placed on top of tables by clicking and dragging the crate onto the target table."
+	. += "A closed crate can be lifted by clicking and dragging it onto yourself, provided both of your hands are free and you have enough lift capacity for the crate and its contents."
 
 /obj/structure/closet/crate/antagonist_hints(mob/user, distance, is_adjacent)
 	. = list()
@@ -168,8 +169,93 @@
 	if(istype(loc, /obj/structure/crate_shelf) && isturf(over) && !is_blocked_turf(over))
 		take_off_shelf(loc, user, over)
 		return TRUE
+	else if(over == user)
+		lift_crate(user)
+		return TRUE
 	else
 		return ..()
+
+/obj/structure/closet/crate/proc/lift_crate(mob/living/carbon/human/user)
+	if(!ishuman(user) || !user.Adjacent(src) || !isturf(loc))
+		return FALSE
+	if(opened)
+		to_chat(user, SPAN_WARNING("You need to close \the [src] before lifting it."))
+		return FALSE
+	if(anchored)
+		to_chat(user, SPAN_WARNING("\The [src] is secured in place."))
+		return FALSE
+	if(user.get_active_hand() || user.get_inactive_hand())
+		to_chat(user, SPAN_WARNING("You need both hands free to lift \the [src]."))
+		return FALSE
+
+	var/effective_mass = get_effective_mass()
+	if(user.get_lift_capacity() < effective_mass)
+		to_chat(user, SPAN_WARNING("\The [src] is too heavy for you to lift."))
+		return FALSE
+
+	user.visible_message(SPAN_NOTICE("\The [user] braces and starts lifting \the [src]..."), SPAN_NOTICE("You brace and start lifting \the [src]..."))
+	if(!do_after(user, 1 SECOND, src, DO_UNIQUE))
+		return FALSE
+	if(!user.Adjacent(src) || !isturf(loc) || opened || anchored || user.get_active_hand() || user.get_inactive_hand())
+		return FALSE
+	if(user.get_lift_capacity() < get_effective_mass())
+		to_chat(user, SPAN_WARNING("\The [src] is now too heavy for you to lift."))
+		return FALSE
+
+	var/obj/item/package/carried_crate/carrier = new(get_turf(src))
+	carrier.store_crate(src)
+	if(!user.put_in_active_hand(carrier))
+		qdel(carrier)
+		return FALSE
+	carrier.wield(user)
+	user.visible_message(SPAN_NOTICE("\The [user] lifts \the [src]."), SPAN_NOTICE("You lift \the [src]."))
+	return TRUE
+
+/// Temporary item representation used while an existing crate is carried in both hands.
+/obj/item/package/carried_crate
+	name = "carried crate"
+	desc = "A crate being carried with both hands."
+	icon = 'icons/obj/containers/crate.dmi'
+	icon_state = "crate"
+	icon_override = 'icons/obj/package.dmi'
+	item_state = "supply_package"
+	mass_based_slowdown = TRUE
+	slowdown = 0
+	var/obj/structure/closet/crate/stored_crate
+
+/obj/item/package/carried_crate/proc/store_crate(obj/structure/closet/crate/crate)
+	stored_crate = crate
+	name = crate.name
+	desc = crate.desc
+	icon = crate.icon
+	icon_state = crate.icon_state
+	color = crate.color
+	crate.set_tablestatus(FALSE)
+	crate.forceMove(src)
+
+/obj/item/package/carried_crate/get_effective_mass()
+	if(stored_crate && !QDELETED(stored_crate))
+		return stored_crate.get_effective_mass()
+	return ..()
+
+/obj/item/package/carried_crate/dropped(mob/user)
+	. = ..()
+	deploy_crate(get_turf(src))
+
+/obj/item/package/carried_crate/proc/deploy_crate(turf/destination)
+	if(!destination || !stored_crate || QDELETED(stored_crate))
+		return FALSE
+	var/obj/structure/closet/crate/crate = stored_crate
+	stored_crate = null
+	crate.forceMove(destination)
+	qdel(src)
+	return TRUE
+
+/obj/item/package/carried_crate/Destroy()
+	if(stored_crate && !QDELETED(stored_crate))
+		stored_crate.forceMove(get_turf(src))
+	stored_crate = null
+	return ..()
 
 /obj/structure/closet/crate/proc/put_on_shelf(var/obj/structure/crate_shelf/shelf, var/mob/user)
 	shelf.load(src, user)
