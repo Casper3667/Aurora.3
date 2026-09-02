@@ -5,6 +5,27 @@
 /mob/living/proc/attempt_grab(var/mob/living/grabber)
 	return 1
 
+/**
+ * Returns the maximum mass, in kilograms, that this mob can comfortably lift.
+ * Conditioning modifies effective mass, while species strength supplies the
+ * same final multiplier used by fireman carries and throwing grabbed mobs.
+ */
+/mob/proc/get_lift_capacity()
+	return get_effective_mass() * mob_strength
+
+/**
+ * Returns the movement delay caused by moving a load beyond this mob's
+ * comfortable lift capacity. Loads within capacity add no mass-based delay.
+ */
+/mob/proc/get_load_movement_delay(atom/movable/load)
+	if(!load)
+		return 0
+	var/lift_capacity = get_lift_capacity()
+	var/load_mass = load.get_effective_mass()
+	if(load_mass <= lift_capacity)
+		return 0
+	return load_mass / lift_capacity
+
 //As above, but called when someone tries to pull this mob
 /mob/living/proc/attempt_pull(var/mob/living/grabber)
 	return 1
@@ -443,7 +464,7 @@
 		to_chat(H, SPAN_WARNING("You can only fireman carry humanoids!"))
 		return
 	var/mob/living/carbon/human/affected_human = affecting
-	var/grabber_strength = H.get_effective_mass() * H.mob_strength
+	var/grabber_strength = H.get_lift_capacity()
 	if(affected_human.mass > grabber_strength)
 		to_chat(H, SPAN_WARNING("\The [affected_human] is heavier than your Lift Limit of [grabber_strength]kg, you cannot fireman carry then!"))
 		return

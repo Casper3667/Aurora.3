@@ -1587,6 +1587,8 @@
 	var/speedies = 0
 	for(var/obj/item/thing in get_equipped_speed_mod_items())
 		speedies += (thing.slowdown + thing.slowdown_accessory)
+		if(thing.mass_based_slowdown)
+			speedies += thing.get_effective_mass() / get_lift_capacity()
 
 	if(speedies)
 		add_or_update_variable_movespeed_modifier(

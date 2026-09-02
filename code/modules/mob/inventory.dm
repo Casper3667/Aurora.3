@@ -425,7 +425,7 @@ GLOBAL_LIST_INIT(slot_equipment_priority, list(
 		item = G.throw_held() //throw the person instead of the grab
 		if(ismob(item) && G.state >= GRAB_NECK)
 			var/mob/M = item
-			var/grabber_strength = get_effective_mass() * mob_strength
+			var/grabber_strength = get_lift_capacity()
 			if(M.mass > grabber_strength)
 				to_chat(src, SPAN_WARNING("[M] is heavier (or more unwieldy) than your limit of [grabber_strength]kg, you cannot throw them!"))
 				return

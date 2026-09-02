@@ -144,9 +144,10 @@ default behaviour is:
 		now_pushing = TRUE
 
 		if(!target_movable_atom.anchored)
+			var/obj/pushed_object
 			if(isobj(target_movable_atom))
-				var/obj/object = target_movable_atom
-				if((can_pull_size == 0) || (can_pull_size < object.w_class))
+				pushed_object = target_movable_atom
+				if((can_pull_size == 0) || (can_pull_size < pushed_object.w_class))
 					now_pushing = FALSE
 					return
 
@@ -159,7 +160,10 @@ default behaviour is:
 			if(target_movable_atom == src.pulling)
 				stop_pulling()
 
+			var/atom/old_location = target_movable_atom.loc
 			step(target_movable_atom, target_direction)
+			if(pushed_object && pushed_object.loc != old_location)
+				setMoveCooldown(get_load_movement_delay(pushed_object))
 			if(ishuman(target_movable_atom))
 				var/mob/living/carbon/human/target_human = target_movable_atom
 				if(target_human.grabbed_by)
