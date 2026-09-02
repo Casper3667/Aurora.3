@@ -124,7 +124,7 @@
 
 /singleton/skill/conditioning
 	name = "Conditioning"
-	description = "Governs a character's ability to pick up, drag, and throw heavy objects, particularly crates and people. " \
+	description = "Governs a character's ability to pick up, drag, and throw heavy objects, particularly crates, people, ammunition, and machinery components. " \
 		+ "By default, most characters can comfortably lift or drag 1.25x their body weight without penalty. " \
 		+ "This includes determining how heavy a character you can fireman carry, and with how much slowdown. "
 	maximum_level = SKILL_LEVEL_PROFESSIONAL
