@@ -133,8 +133,8 @@
 	subcategory = SKILL_SUBCATEGORY_OPERATIONS
 	skill_level_descriptions = alist(
 		SKILL_LEVEL_UNFAMILIAR = "You have no modifiers from your Conditioning.",
-		SKILL_LEVEL_FAMILIAR = "Your maximum Lift Capacity is increased by 25%",
-		SKILL_LEVEL_TRAINED = "Your maximum Lift Capacity is increased by 50%",
-		SKILL_LEVEL_PROFESSIONAL = "Your maximum Lift Capacity is increased by 75%"
+		SKILL_LEVEL_FAMILIAR = "Your maximum Lift Capacity is increased by 25%, you climb 15% faster, and you have a 20% chance to catch yourself during sudden shuttle acceleration when something is within reach.",
+		SKILL_LEVEL_TRAINED = "Your maximum Lift Capacity is increased by 50%, you climb 30% faster, and you have a 40% chance to catch yourself during sudden shuttle acceleration when something is within reach.",
+		SKILL_LEVEL_PROFESSIONAL = "Your maximum Lift Capacity is increased by 75%, you climb 45% faster, and you have a 60% chance to catch yourself during sudden shuttle acceleration when something is within reach."
 	)
 	component_type = CONDITIONING_SKILL_COMPONENT
