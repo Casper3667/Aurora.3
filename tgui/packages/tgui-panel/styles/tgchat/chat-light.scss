@@ -718,6 +718,17 @@ h2.alert {
   padding: 0;
 }
 
+.examine_foldout {
+  summary {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  &__content {
+    margin-top: 0.35em;
+  }
+}
+
 .tooltip {
   font-style: italic;
   border-bottom: 1px dashed;
