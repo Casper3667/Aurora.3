@@ -2036,6 +2036,7 @@
 #include "code\modules\client\preference_setup\loadout\items\ears.dm"
 #include "code\modules\client\preference_setup\loadout\items\eyes.dm"
 #include "code\modules\client\preference_setup\loadout\items\factions.dm"
+#include "code\modules\clothing\zephyr_shipping.dm"
 #include "code\modules\client\preference_setup\loadout\items\general.dm"
 #include "code\modules\client\preference_setup\loadout\items\gloves.dm"
 #include "code\modules\client\preference_setup\loadout\items\head.dm"
