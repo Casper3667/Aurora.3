@@ -185,6 +185,9 @@
 	new /obj/item/radio/headset/headset_warden(src)
 	new /obj/item/radio/headset/headset_warden/alt(src)
 	new /obj/item/clothing/glasses/sunglasses/sechud/aviator(src)
+	new /obj/item/clothing/glasses/sunglasses/sechud/aviator/idris(src)
+	new /obj/item/clothing/glasses/sunglasses/sechud/aviator/pmc(src)
+	new /obj/item/clothing/glasses/sunglasses/sechud/aviator/zavod(src)
 	new /obj/item/clothing/glasses/sunglasses/sechud(src)
 	new /obj/item/taperoll/police(src)
 	new /obj/item/gun/projectile/sec(src)
@@ -297,6 +300,7 @@
 	new /obj/item/stamp/investigations(src)
 	new /obj/item/clothing/glasses/sunglasses/sechud/aviator(src)
 	new /obj/item/clothing/glasses/sunglasses/sechud(src)
+	new /obj/item/clothing/gloves/black/forensic(src)
 	new /obj/item/journal/notepad/filled/security(src)
 	//Belts
 	new /obj/item/clothing/accessory/storage/black_vest(src)
