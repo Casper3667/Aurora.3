@@ -181,7 +181,8 @@
 	var/max_cells = 10
 
 /obj/structure/machinery/cell_charger/rack/feedback_hints(mob/user, distance, is_adjacent)
-	if(distance > 5)
+	. = list()
+	if(distance > 3)
 		return
 
 	var/cell_count = 0
