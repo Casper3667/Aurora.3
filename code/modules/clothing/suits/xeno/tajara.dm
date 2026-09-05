@@ -338,6 +338,40 @@
 	protects_against_weather = TRUE
 	species_restricted = list(BODYTYPE_TAJARA)
 	flags_inv = HIDEJUMPSUIT|HIDETAIL
+	var/hoodtype = /obj/item/clothing/head/winterhood/tajaran_snowsuit
+	armor = list(
+		MELEE = ARMOR_MELEE_KEVLAR,
+		BULLET = ARMOR_BALLISTIC_CARBINE,
+		LASER = ARMOR_LASER_SMALL,
+		ENERGY = ARMOR_ENERGY_MINOR,
+		BOMB = ARMOR_BOMB_PADDED
+	)
+
+/obj/item/clothing/suit/armor/tajaran_snowsuit/Initialize()
+	. = ..()
+	new hoodtype(src)
+
+/obj/item/clothing/suit/armor/tajaran_snowsuit/verb/ToggleHood()
+	set name = "Toggle Snowsuit Hood"
+	set category = "Object.Equipped"
+	set src in usr
+
+	if(use_check_and_message(usr))
+		return FALSE
+
+	SEND_SIGNAL(src, COMSIG_ITEM_UPDATE_STATE)
+
+/obj/item/clothing/suit/armor/tajaran_snowsuit/AltClick(mob/user)
+	ToggleHood(user)
+
+/obj/item/clothing/head/winterhood/tajaran_snowsuit
+	name = "\improper Nav'korr snowsuit hood"
+	desc = "A thick, reinforced hood attached to a Nav'korr armored snowsuit."
+	icon = 'icons/obj/tajara_items.dmi'
+	icon_state = "snowsuit_hood"
+	item_state = "snowsuit_hood"
+	contained_sprite = TRUE
+	species_restricted = list(BODYTYPE_TAJARA)
 	armor = list(
 		MELEE = ARMOR_MELEE_KEVLAR,
 		BULLET = ARMOR_BALLISTIC_CARBINE,
