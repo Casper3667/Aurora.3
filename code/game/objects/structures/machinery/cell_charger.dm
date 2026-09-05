@@ -224,28 +224,6 @@
 			count++
 	return count
 
-/obj/structure/machinery/cell_charger/rack/update_icon()
-	ClearOverlays()
-	if(INOPERABLE(src))
-		return
-
-	var/total_charge = 0
-	var/total_capacity = 0
-	for(var/obj/item/battery_item in contents)
-		var/obj/item/cell/cell = get_stored_cell(battery_item)
-		if(!cell)
-			continue
-		total_charge += cell.charge
-		total_capacity += cell.maxcharge
-
-	if(total_capacity)
-		var/charge_display = round(4 * total_charge / total_capacity)
-		if(charge_display)
-			AddOverlays("[icon_state]-og[charge_display]")
-
-	AddOverlays("[icon_state]-oc[charging ? 1 : 0]")
-	AddOverlays("[icon_state]-op0")
-
 /obj/structure/machinery/cell_charger/rack/attackby(obj/item/attacking_item, mob/user)
 	if(stat & BROKEN)
 		return TRUE
