@@ -142,6 +142,12 @@
 	else
 		return ..()
 
+/obj/structure/closet/crate/attack_hand(mob/user)
+	if(istype(loc, /obj/structure/crate_shelf))
+		var/obj/structure/crate_shelf/shelf = loc
+		return shelf.lift_to_hands(src, user)
+	return ..()
+
 /obj/structure/closet/crate/proc/set_tablestatus(var/target)
 	if (tablestatus != target)
 		tablestatus = target
@@ -240,7 +246,12 @@
 
 /obj/item/package/carried_crate/dropped(mob/user)
 	. = ..()
-	deploy_crate(get_turf(src))
+	// Let throw-mode placement move the carrier to its target turf before restoring the crate.
+	addtimer(CALLBACK(src, PROC_REF(deploy_after_drop)), 0)
+
+/obj/item/package/carried_crate/proc/deploy_after_drop()
+	if(!ismob(loc))
+		deploy_crate(get_turf(src))
 
 /obj/item/package/carried_crate/proc/deploy_crate(turf/destination)
 	if(!destination || !stored_crate || QDELETED(stored_crate))
@@ -288,22 +299,15 @@
 			to_chat(user, SPAN_WARNING("There's already a crate on this table!"))
 			return
 
-	//Crates are heavy, hauling them onto tables is hard.
-	//The more stuff thats in it, the longer it takes
-	//Good place to factor in Strength in future
-	var/timeneeded = 2 SECONDS
+	// Crates are heavy, and their contents are already included recursively in
+	// effective mass. Loads beyond the user's comfortable capacity remain
+	// possible to hoist, but take proportionally longer.
+	var/timeneeded = clamp(2 SECONDS * max(1, get_effective_mass() / user.get_lift_capacity()), 2 SECONDS, 15 SECONDS)
 
 	if (tablestatus == ABOVE_TABLE && Adjacent(table))
 		//Sliding along a tabletop we're already on. Instant and silent
 		timeneeded = 0
 		return TRUE
-	else
-		//Add time based on mass of contents
-		for (var/obj/O in contents)
-			timeneeded += 1.5* O.w_class
-		for (var/mob/M in contents)
-			timeneeded += 1.5* M.mob_size
-
 	if (timeneeded > 0)
 		user.visible_message("[user] starts hoisting \the [src] onto \the [table].", "You start hoisting \the [src] onto \the [table]. This will take about [timeneeded * 0.1] seconds.")
 		user.face_atom(src)

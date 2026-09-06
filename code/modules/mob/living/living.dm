@@ -147,7 +147,8 @@ default behaviour is:
 			var/obj/pushed_object
 			if(isobj(target_movable_atom))
 				pushed_object = target_movable_atom
-				if((can_pull_size == 0) || (can_pull_size < pushed_object.w_class))
+				// Humanoids are limited by mass-based movement delay rather than item size.
+				if((can_pull_size == 0) || (!ishuman(src) && can_pull_size < pushed_object.w_class))
 					now_pushing = FALSE
 					return
 

@@ -39,7 +39,8 @@
 	skills = list(
 		/singleton/skill/unarmed_combat = SKILL_LEVEL_TRAINED,
 		/singleton/skill/armed_combat = SKILL_LEVEL_TRAINED,
-		/singleton/skill/firearms = SKILL_LEVEL_TRAINED
+		/singleton/skill/firearms = SKILL_LEVEL_TRAINED,
+		/singleton/skill/conditioning = SKILL_LEVEL_FAMILIAR
 	)
 
 /singleton/education/military_corpsman
@@ -88,4 +89,3 @@
 		/singleton/skill/forensics = SKILL_LEVEL_FAMILIAR, /* Very basic crime investigation skills. */
 		/singleton/skill/medicine = SKILL_LEVEL_FAMILIAR /* Police are also trained in basic first aid. */
 	)
-
