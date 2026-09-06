@@ -131,7 +131,7 @@
 		else
 			var/extended_examine_text = extended_examine_strings.Join("<br>")
 			var/extended_examine_summary = FONT_SMALL(SPAN_NOTICE("\[?\] Additional examine information: [english_list(extended_examine_categories)]"))
-			. += "<details class='examine_foldout'><summary>[extended_examine_summary]</summary><div class='examine_foldout__content'>[extended_examine_text]</div></details>"
+			. += "<details class='examine_foldout'><summary>[extended_examine_summary]</summary><div class='examine_foldout__content'>[extended_examine_text]<hr class='examine_foldout__divider'></div></details>"
 	// If the item has any feedback text, show it.
 	if(desc_feedback)
 		if(length(extended_examine_strings) && !show_extended)

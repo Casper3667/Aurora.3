@@ -725,7 +725,15 @@ h2.alert {
   }
 
   &__content {
+    margin-left: 1em;
     margin-top: 0.35em;
+  }
+
+  &__divider {
+    border: 0;
+    border-top: 1px solid currentColor;
+    margin: 0.5em 0 0;
+    opacity: 0.25;
   }
 }
 
