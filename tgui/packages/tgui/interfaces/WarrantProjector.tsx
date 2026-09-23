@@ -42,6 +42,7 @@ type IncidentEntry = {
 type WarrantProjectorData = {
   presentation: BooleanLike;
   fine_presentation: BooleanLike;
+  display_mode: 'warrants' | 'fines';
   authenticated: BooleanLike;
   awaiting_payment: BooleanLike;
   payment_issuer: string | null;
@@ -67,7 +68,7 @@ export const WarrantProjector = (props) => {
     <Window
       width={data.presentation ? 700 : 850}
       height={700}
-      theme="zavodskoi"
+      theme="ntos"
     >
       <Window.Content scrollable>
         {data.presentation ? (
@@ -85,7 +86,8 @@ export const WarrantProjector = (props) => {
 };
 
 const ProjectorControls = (props) => {
-  const [tab, setTab] = useLocalState('tab', 'warrants');
+  const { act, data } = useBackend<WarrantProjectorData>();
+  const tab = data.display_mode;
 
   return (
     <>
@@ -93,14 +95,14 @@ const ProjectorControls = (props) => {
         <Tabs.Tab
           icon="file-signature"
           selected={tab === 'warrants'}
-          onClick={() => setTab('warrants')}
+          onClick={() => act('set_display_mode', { mode: 'warrants' })}
         >
           Warrants
         </Tabs.Tab>
         <Tabs.Tab
           icon="money-check-dollar"
           selected={tab === 'fines'}
-          onClick={() => setTab('fines')}
+          onClick={() => act('set_display_mode', { mode: 'fines' })}
         >
           Issue Fine
         </Tabs.Tab>

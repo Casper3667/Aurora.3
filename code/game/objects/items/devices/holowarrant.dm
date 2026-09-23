@@ -12,6 +12,8 @@
 
 	var/datum/record/warrant/selected_warrant
 	var/datum/crime_incident/fine_incident
+	/// Which projector function is currently selected in the control interface.
+	var/display_mode = "warrants"
 	var/awaiting_payment = FALSE
 	var/datum/weakref/payment_issuer
 	var/payment_issuer_name
@@ -22,9 +24,9 @@
 /obj/item/holowarrant/mechanics_hints(mob/user, distance, is_adjacent)
 	. += ..()
 	. += "Use this item in-hand to open its warrant and fine interface."
-	. += "Click on a person to display the loaded warrant to them."
-	. += "Clicking a person also scans their worn ID as the recipient of a fine."
-	. += "Once payment is requested, clicking a person displays the fine instead. The recipient can authorize payment by tapping their scanned ID against the projector."
+	. += "In the Warrants section, click on a person to display the loaded warrant to them."
+	. += "In the Issue Fine section, click on a person to scan their worn ID as the recipient of a fine."
+	. += "Once payment is requested, clicking a person while in the Issue Fine section displays the fine. The recipient can authorize payment by tapping their scanned ID against the projector."
 
 /obj/item/holowarrant/feedback_hints(mob/user, distance, is_adjacent)
 	. += ..()
@@ -91,16 +93,19 @@
 	play_message(SPAN_NOTICE("\The [src] pings, \"Active warrant modified.\""))
 
 /obj/item/holowarrant/attack(mob/living/target_mob, mob/living/user, target_zone)
+	if(display_mode == "warrants")
+		if(!selected_warrant)
+			to_chat(user, SPAN_WARNING("There is no warrant loaded."))
+			return
+
+		user.visible_message("<b>[user]</b> holds \the [src] up to \the [target_mob].", SPAN_NOTICE("You hold up \the [src] to \the [target_mob]."))
+		show_content(target_mob)
+		return
+
 	if(awaiting_payment && fine_incident)
 		user.visible_message("<b>[user]</b> holds \the [src] up to \the [target_mob].", SPAN_NOTICE("You show the pending fine on \the [src] to \the [target_mob]."))
 		show_fine_content(target_mob)
 		return
-
-	var/did_something = FALSE
-	if(selected_warrant)
-		user.visible_message("<b>[user]</b> holds \the [src] up to \the [target_mob].", SPAN_NOTICE("You hold up \the [src] to \the [target_mob]."))
-		show_content(target_mob)
-		did_something = TRUE
 
 	var/mob/living/carbon/human/human_target = target_mob
 	if(istype(human_target))
@@ -108,12 +113,10 @@
 		if(istype(target_id) && target_id.registered_name)
 			set_fine_target(human_target, target_id)
 			to_chat(user, SPAN_NOTICE("Fine recipient set to [target_id.registered_name]."))
-			did_something = TRUE
 		else
 			to_chat(user, SPAN_WARNING("Unable to locate a registered ID on [human_target]."))
-
-	if(!did_something)
-		to_chat(user, SPAN_WARNING("There is no warrant loaded."))
+	else
+		to_chat(user, SPAN_WARNING("Only a person wearing a registered ID can be selected as a fine recipient."))
 
 /obj/item/holowarrant/attackby(obj/item/attacking_item, mob/user)
 	if(!awaiting_payment || !istype(attacking_item, /obj/item/card/id))
@@ -208,6 +211,7 @@
 /obj/item/holowarrant/ui_data(mob/user)
 	var/list/data = list()
 	data["presentation"] = FALSE
+	data["display_mode"] = display_mode
 	data["authenticated"] = !!get_security_id(user)
 	data["awaiting_payment"] = awaiting_payment
 	data["payment_issuer"] = payment_issuer_name
@@ -299,6 +303,11 @@
 	if(action == "unload_warrant")
 		unload_warrant()
 		play_message(SPAN_NOTICE("\The [src] pings, \"Warrant unloaded.\""))
+		return TRUE
+
+	if(action == "set_display_mode")
+		if(params["mode"] in list("warrants", "fines"))
+			display_mode = params["mode"]
 		return TRUE
 
 	var/mob/living/user = usr
