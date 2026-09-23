@@ -22,7 +22,10 @@
 	src.pixel_y = rand(-5.0, 5)
 
 	// Fill the object up with the appropriate reagents.
-	if(planttype)
+	if(istype(planttype, /datum/seed))
+		seed = planttype
+		plantname = seed.name
+	else if(planttype)
 		plantname = planttype
 
 	if(!plantname)
@@ -33,7 +36,8 @@
 		qdel(src)
 		return
 
-	seed = SSplants.seeds[plantname]
+	if(!seed)
+		seed = SSplants.get_cultivar(plantname)
 
 	if(!seed)
 		return
@@ -321,7 +325,10 @@
 
 	if(GET_SEED_TRAIT(seed, TRAIT_SPREAD) > 0)
 		to_chat(user, SPAN_NOTICE("You plant the [src.name]."))
-		new /obj/structure/machinery/portable_atmospherics/hydroponics/soil/invisible(get_turf(user),src.seed)
+		if(GET_SEED_TRAIT(seed, TRAIT_SPREAD) == 2)
+			new /obj/effect/plant(get_turf(user), seed)
+		else
+			new /obj/effect/plant/single(get_turf(user), seed)
 		qdel(src)
 		return
 

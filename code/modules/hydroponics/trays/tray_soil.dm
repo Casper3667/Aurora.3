@@ -53,14 +53,11 @@ Hence using a blank icon. */
 
 /obj/structure/machinery/portable_atmospherics/hydroponics/soil/invisible/Initialize(var/newloc,var/datum/seed/newseed,var/start_mature)
 	. = ..()
-	seed = newseed
-	dead = 0
-	age = start_mature ? GET_SEED_TRAIT(seed, TRAIT_MATURATION) : 1
-	plant_health = GET_SEED_TRAIT(seed, TRAIT_ENDURANCE)
-	lastcycle = world.time
+	plant_seed(newseed, start_mature ? GET_SEED_TRAIT(newseed, TRAIT_MATURATION) : 1)
 	pixel_y = rand(-5,5)
-	waterlevel = 100
-	nutrilevel = 100
+	growing_medium.water = 100
+	growing_medium.nutrients = 100
+	sync_legacy_from_model()
 	check_health()
 
 /obj/structure/machinery/portable_atmospherics/hydroponics/soil/invisible/remove_dead()

@@ -17,7 +17,7 @@
 /datum/export/seed/sell_object(obj/O)
 	..()
 	var/obj/item/seeds/S = O
-	discoveredPlants[S.type] = S.seed.traits[TRAIT_POTENCY]
+	discoveredPlants[S.type] = GET_SEED_TRAIT(S.seed, TRAIT_POTENCY)
 
 
 /datum/export/seed/potency
@@ -32,6 +32,6 @@
 	if(!cost)
 		return 0
 
-	var/potDiff = (S.seed.traits[TRAIT_POTENCY] - discoveredPlants[S.type])
+	var/potDiff = (GET_SEED_TRAIT(S.seed, TRAIT_POTENCY) - discoveredPlants[S.type])
 
 	return round(..() * potDiff)

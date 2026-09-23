@@ -193,8 +193,10 @@
 	var/trays = 0
 	for(var/obj/structure/machinery/portable_atmospherics/hydroponics/H in view(7, src))
 		if(H.seed && !H.dead)
-			H.health += 0.05 * coef
-			H.yield_mod = min(10, H.yield_mod + coef)
+			H.sync_model_from_legacy()
+			H.plant.health += 0.05 * coef
+			H.plant.yield_bonus = min(10, H.plant.yield_bonus + coef)
+			H.sync_legacy_from_model()
 			trays++
 	honeycombs = min(honeycombs + 0.12 * coef * min(trays, 5), frames * 100)
 

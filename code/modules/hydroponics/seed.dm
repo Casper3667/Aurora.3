@@ -5,6 +5,10 @@
 	var/list/values
 
 /datum/seed
+	/// Immutable species metadata shared by cultivars descended from this seed.
+	var/datum/plant_species/species
+	/// Mutable, deeply cloneable genetic data for this cultivar.
+	var/datum/plant_genome/genome
 	//Tracking.
 	/// Unique identifier
 	var/uid
@@ -26,8 +30,6 @@
 	/// Number of stages the plant passes through before it is mature
 	var/growth_stages = 0
 
-	/// Initialized in New()
-	var/list/traits = list()
 	/// Possible predefined mutant varieties, if any
 	var/list/mutants
 	/// Chemicals that plant produces in products/injects into victim
@@ -49,7 +51,7 @@
 	/// If set, overrides the extended scription of the product (Useful to describe the 'lore')
 	var/product_desc_extended
 
-	/// The base percentage chance the plant will grow per each process().
+	/// Base continuous growth earned per process cycle, as a percentage of one age unit.
 	var/base_growth_speed = 10
 	/// The boost to the base growth speed applied to the plant if within temperature preferences.
 	var/temperature_growth_boost = 20
@@ -65,6 +67,7 @@
 /datum/seed/proc/setup_traits()
 
 /datum/seed/New()
+	genome = new
 	SET_SEED_TRAIT(src, TRAIT_SPOROUS, 0)
 	SET_SEED_TRAIT(src, TRAIT_IMMUTABLE, 0)
 	SET_SEED_TRAIT(src, TRAIT_HARVEST_REPEAT, 0)
@@ -107,8 +110,27 @@
 	SET_SEED_TRAIT(src, TRAIT_LIGHT_PREFERENCE, 1.5) // Similarly, they grow faster under lumens within 1.5 of their ideal.
 
 	setup_traits()
+	genome.chemistry = islist(chems) ? deep_copy_list(chems) : chems
+	genome.consume_gasses = islist(consume_gasses) ? deep_copy_list(consume_gasses) : consume_gasses
+	genome.exude_gasses = islist(exude_gasses) ? deep_copy_list(exude_gasses) : exude_gasses
+	genome.product_type = product_type
+	genome.validate()
+	bind_genome_compatibility()
+	species = new(src)
 
 	update_growth_stages()
+
+/// Keeps legacy fields readable while downstream systems migrate to genome accessors.
+/datum/seed/proc/bind_genome_compatibility()
+	chems = genome.chemistry
+	consume_gasses = genome.consume_gasses
+	exude_gasses = genome.exude_gasses
+	product_type = genome.product_type
+
+/// Refreshes species metadata after a procedurally generated seed is named.
+/datum/seed/proc/refresh_species()
+	QDEL_NULL(species)
+	species = new(src)
 
 /datum/seed/proc/create_spores(var/turf/T)
 	if(!T)
@@ -309,90 +331,38 @@
 
 /// Checks the plant's environment. If anything is improper, adds to a value that will ultimately be used to damage the plant.
 /datum/seed/proc/handle_environment(var/turf/current_turf, var/datum/gas_mixture/environment, var/light_supplied, var/check_only)
-	var/health_change = 0
-	// Handle gas consumption.
-	if(consume_gasses && consume_gasses.len)
-		var/missing_gas = 0
-		for(var/gas in consume_gasses)
-			if(environment && environment.gas && environment.gas[gas] && \
-				environment.gas[gas] >= consume_gasses[gas])
-				if(!check_only)
-					environment.adjust_gas(gas,-consume_gasses[gas],1)
-			else
-				missing_gas++
-
-		if(missing_gas > 0)
-			health_change += missing_gas * HYDRO_SPEED_MULTIPLIER
-
-	// Process it.
-	var/pressure = XGM_PRESSURE(environment)
-	if(pressure < GET_SEED_TRAIT(src, TRAIT_LOWKPA_TOLERANCE)|| pressure > GET_SEED_TRAIT(src, TRAIT_HIGHKPA_TOLERANCE))
-		health_change += rand(1,3) * HYDRO_SPEED_MULTIPLIER
-
-	// We take the absolute value of the environment's temperature minus the ideal heat - closer to 0 is better, in this case.
-	// If that value is greater than the heat tolerance, we apply some damage to the plant.
-	if(check_heat_tolerances(environment))
-		health_change += rand(1,3) * HYDRO_SPEED_MULTIPLIER
-
-	// Handle gas production.
-	if(exude_gasses && exude_gasses.len && !check_only)
-		for(var/gas in exude_gasses)
-			environment.adjust_gas(gas, max(1,round((exude_gasses[gas]*(GET_SEED_TRAIT(src, TRAIT_POTENCY)/5))/exude_gasses.len)))
-
-	// Handle light requirements.
-	if(!light_supplied)
-		light_supplied = current_turf.get_lumcount(0, 3) * 10
-
-	if(light_supplied)
-		if(check_light_tolerances(light_supplied))
-			health_change += rand(1,3) * HYDRO_SPEED_MULTIPLIER
-
+	if(isnull(light_supplied))
+		light_supplied = current_turf.get_lumcount(0, 3) * 5
+	var/datum/plant_environment/plant_environment = new(current_turf, environment, light_supplied)
+	var/health_change = genome.apply_environment(plant_environment, HYDRO_SPEED_MULTIPLIER, !check_only)
+	qdel(plant_environment)
 	return health_change
 
 /// Returns true if a plant is outside their light tolerances, otherwise false.
 /datum/seed/proc/check_light_tolerances(var/light_supplied)
-	if(abs(light_supplied - GET_SEED_TRAIT(src, TRAIT_IDEAL_LIGHT)) > GET_SEED_TRAIT(src, TRAIT_LIGHT_TOLERANCE))
-		return TRUE
-	return FALSE
+	return genome.is_outside_light_tolerance(light_supplied)
 
 /// Returns true if a plant is outside their heat tolerances, otherwise false.
 /datum/seed/proc/check_heat_tolerances(var/datum/gas_mixture/environment)
-	if(abs(environment.temperature - GET_SEED_TRAIT(src, TRAIT_IDEAL_HEAT)) > GET_SEED_TRAIT(src, TRAIT_HEAT_TOLERANCE))
-		return TRUE
-	return FALSE
+	return genome.is_outside_heat_tolerance(environment)
 
 /// Returns true if a plant is in their light preferences, otherwise false.
 /datum/seed/proc/check_light_preferences(var/light_supplied)
-	if(abs(light_supplied - GET_SEED_TRAIT(src, TRAIT_IDEAL_LIGHT)) < GET_SEED_TRAIT(src, TRAIT_LIGHT_PREFERENCE))
-		return TRUE
-	return FALSE
+	return genome.is_within_light_preference(light_supplied)
 
 /// Returns true if a plant is in their heat preferences, otherwise false.
 /datum/seed/proc/check_heat_preferences(var/datum/gas_mixture/environment)
-	if(abs(environment.temperature - GET_SEED_TRAIT(src, TRAIT_IDEAL_HEAT)) < GET_SEED_TRAIT(src, TRAIT_HEAT_PREFERENCE))
-		return TRUE
-	return FALSE
+	return genome.is_within_heat_preference(environment)
 
-/// Checks the preferences of the seed, and returns the percentage chance for growth to occur. Called in tray_process.
+/// Returns deterministic growth accrued per cycle, expressed as a percentage of one age unit.
+/datum/seed/proc/get_growth_rate(var/datum/gas_mixture/environment, var/light_supplied)
+	return genome.get_growth_rate(species, environment, light_supplied)
+
+/// Compatibility wrapper for callers not yet migrated to plant instances.
 /datum/seed/proc/get_probability_of_growth(var/turf/current_turf, var/datum/gas_mixture/environment, var/light_supplied, var/check_only)
-	// By standard, the probability of growth is only the base. This rises if growing conditions are within their preferences.
-	// This is intended to motivate the use of atmospheric equipment to more viably grow plants with irregular preferences.
-	// You *can* grow plants outside of their preferences without them dying so long as it's within their tolerance, but it'll be pretty slow.
-	var/return_probability = base_growth_speed
-
-	// Handle light requirements.
-	if(!light_supplied)
-		light_supplied = current_turf.get_lumcount(0, 3) * 10
-
-	// Are we within the preference zone for temperature? If so, add to the chance of growth.
-	if(check_heat_preferences(environment))
-		return_probability += temperature_growth_boost
-
-	// Same for light!
-	if(check_light_preferences(light_supplied))
-		return_probability += light_growth_boost
-
-	return return_probability
+	if(isnull(light_supplied))
+		light_supplied = current_turf.get_lumcount(0, 3) * 5
+	return get_growth_rate(environment, light_supplied)
 
 /datum/seed/proc/apply_special_effect(var/mob/living/target,var/obj/item/thrown)
 
@@ -598,6 +568,13 @@
 	SET_SEED_TRAIT(src, TRAIT_PRODUCTION, GET_SEED_TRAIT(src, TRAIT_MATURATION)+rand(2,5))
 
 	generate_name()
+	genome.chemistry = chems
+	genome.consume_gasses = consume_gasses
+	genome.exude_gasses = exude_gasses
+	genome.product_type = product_type
+	genome.validate()
+	bind_genome_compatibility()
+	refresh_species()
 
 /// Returns a key corresponding to an entry in the global seed list.
 /datum/seed/proc/get_mutant_variant()
@@ -625,7 +602,7 @@
 				SET_SEED_TRAIT(src, TRAIT_STINGS, !GET_SEED_TRAIT(src, TRAIT_STINGS))
 			if(2)
 				SET_SEED_TRAIT_BOUNDED(src, TRAIT_IDEAL_HEAT,          GET_SEED_TRAIT(src, TRAIT_IDEAL_HEAT) + (rand(-5,5)*degree), 800, 70, null)
-				SET_SEED_TRAIT_BOUNDED(src, TRAIT_HEAT_TOLERANCE,      GET_SEED_TRAIT(src, TRAIT_HEAT_TOLERANCE) + (rand(-5,5)*degree), 800, 70, null)
+				SET_SEED_TRAIT_BOUNDED(src, TRAIT_HEAT_TOLERANCE,      GET_SEED_TRAIT(src, TRAIT_HEAT_TOLERANCE) + (rand(-5,5)*degree), 100, 0, null)
 				SET_SEED_TRAIT_BOUNDED(src, TRAIT_LOWKPA_TOLERANCE,    GET_SEED_TRAIT(src, TRAIT_LOWKPA_TOLERANCE)+ (rand(-5,5)*degree), 80, 0, null)
 				SET_SEED_TRAIT_BOUNDED(src, TRAIT_HIGHKPA_TOLERANCE,   GET_SEED_TRAIT(src, TRAIT_HIGHKPA_TOLERANCE)+ (rand(-5,5)*degree), 500, 110, null)
 				SET_SEED_TRAIT(src, TRAIT_EXPLOSIVE, 1)
@@ -673,12 +650,14 @@
 			if(11)
 				SET_SEED_TRAIT(src, TRAIT_TELEPORTING, 1)
 
+	genome.validate()
 	return
 
 /// Mutates a specific trait/set of traits.
 /datum/seed/proc/apply_gene(var/datum/plantgene/gene)
 
 	if(!gene || !gene.values || GET_SEED_TRAIT(src, TRAIT_IMMUTABLE) > 0) return
+	var/list/values = deep_copy_list(gene.values)
 
 	// Splicing products has some detrimental effects on yield and lifespan.
 	// We handle this before we do the rest of the looping, as normal traits don't really include lists.
@@ -689,7 +668,7 @@
 
 			if(!chems) chems = list()
 
-			var/list/gene_value = gene.values["[TRAIT_CHEMS]"]
+			var/list/gene_value = values["[TRAIT_CHEMS]"]
 			for(var/rid in gene_value)
 
 				var/list/gene_chem = gene_value[rid]
@@ -707,27 +686,36 @@
 					else
 						chems[rid][i] = gene_chem[i]
 
-			var/list/new_gasses = gene.values["[TRAIT_EXUDE_GASSES]"]
+			var/list/new_gasses = values["[TRAIT_EXUDE_GASSES]"]
 			if(islist(new_gasses))
 				if(!exude_gasses) exude_gasses = list()
 				exude_gasses |= new_gasses
 				for(var/gas in exude_gasses)
 					exude_gasses[gas] = max(1,round(exude_gasses[gas]*0.8))
 
-			gene.values["[TRAIT_EXUDE_GASSES]"] = null
-			gene.values["[TRAIT_CHEMS]"] = null
+			values -= "[TRAIT_EXUDE_GASSES]"
+			values -= "[TRAIT_CHEMS]"
 
 		if(GENE_DIET)
-			var/list/new_gasses = gene.values["[TRAIT_CONSUME_GASSES]"]
-			consume_gasses |= new_gasses
-			gene.values["[TRAIT_CONSUME_GASSES]"] = null
+			var/list/new_gasses = values["[TRAIT_CONSUME_GASSES]"]
+			if(islist(new_gasses))
+				if(!consume_gasses)
+					consume_gasses = list()
+				consume_gasses |= new_gasses
+			values -= "[TRAIT_CONSUME_GASSES]"
 		if(GENE_METABOLISM)
-			product_type = gene.values["product_type"]
-			gene.values["product_type"] = null
+			product_type = values["product_type"]
+			genome.product_type = product_type
+			values -= "product_type"
 
-	for(var/trait in gene.values)
-		SET_SEED_TRAIT(src, trait, gene.values["[trait]"])
+	for(var/trait in values)
+		SET_SEED_TRAIT(src, text2num("[trait]"), values[trait])
 
+	genome.chemistry = chems
+	genome.consume_gasses = consume_gasses
+	genome.exude_gasses = exude_gasses
+	genome.validate()
+	bind_genome_compatibility()
 	update_growth_stages()
 
 /// Returns a list of the desired trait values.
@@ -742,8 +730,8 @@
 
 	switch(genetype)
 		if(GENE_BIOCHEMISTRY)
-			P.values["[TRAIT_CHEMS]"] =        chems
-			P.values["[TRAIT_EXUDE_GASSES]"] = exude_gasses
+			P.values["[TRAIT_CHEMS]"] =        islist(chems) ? deep_copy_list(chems) : chems
+			P.values["[TRAIT_EXUDE_GASSES]"] = islist(exude_gasses) ? deep_copy_list(exude_gasses) : exude_gasses
 			traits_to_copy = list(TRAIT_POTENCY)
 		if(GENE_OUTPUT)
 			traits_to_copy = list(TRAIT_PRODUCES_POWER,TRAIT_BIOLUM, TRAIT_BIOLUM_PWR)
@@ -757,10 +745,10 @@
 		if(GENE_VIGOUR)
 			traits_to_copy = list(TRAIT_PRODUCTION,TRAIT_MATURATION,TRAIT_YIELD,TRAIT_SPREAD)
 		if(GENE_DIET)
-			P.values["[TRAIT_CONSUME_GASSES]"] = consume_gasses
+			P.values["[TRAIT_CONSUME_GASSES]"] = islist(consume_gasses) ? deep_copy_list(consume_gasses) : consume_gasses
 			traits_to_copy = list(TRAIT_CARNIVOROUS,TRAIT_PARASITE,TRAIT_NUTRIENT_CONSUMPTION,TRAIT_WATER_CONSUMPTION)
 		if(GENE_ENVIRONMENT)
-			traits_to_copy = list(TRAIT_IDEAL_HEAT,TRAIT_IDEAL_LIGHT,TRAIT_LIGHT_TOLERANCE)
+			traits_to_copy = list(TRAIT_IDEAL_HEAT, TRAIT_IDEAL_LIGHT, TRAIT_LIGHT_TOLERANCE, TRAIT_HEAT_PREFERENCE, TRAIT_LIGHT_PREFERENCE)
 		if(GENE_PIGMENT)
 			traits_to_copy = list(TRAIT_PLANT_COLOUR,TRAIT_PRODUCT_COLOUR,TRAIT_BIOLUM_COLOUR,TRAIT_LEAVES_COLOUR)
 		if(GENE_STRUCTURE)
@@ -800,10 +788,8 @@
 		to_chat(user, "You [harvest_sample ? "take a sample" : "harvest"] from the [display_name].")
 
 		//This may be a new line. Update the global if it is.
-		if(name == "new line" || !(name in SSplants.seeds))
-			uid = SSplants.seeds.len + 1
-			name = "[uid]"
-			SSplants.seeds[name] = src
+		if(name == "new line" || !SSplants.get_cultivar(name))
+			SSplants.register_cultivar(src)
 
 		if(harvest_sample)
 			var/obj/item/seeds/seeds = new(get_turf(user))
@@ -819,7 +805,9 @@
 					yield_mod = 0
 					total_yield += GET_SEED_TRAIT(src, TRAIT_YIELD)
 				else
-					total_yield += GET_SEED_TRAIT(src, TRAIT_YIELD) + rand(yield_mod)
+					// Fertilizer bonuses are reliable; randomness no longer decides
+					// whether the work invested in a plant pays off.
+					total_yield += GET_SEED_TRAIT(src, TRAIT_YIELD) + (yield_mod * 0.5)
 				total_yield = max(1,total_yield)
 
 		// If the plant is stunted, you get half the yield.
@@ -831,7 +819,12 @@
 	return TRUE
 
 /datum/seed/proc/spawn_seed(var/turf/spawning_loc)
-	var/obj/item/product = new product_type(spawning_loc, name)
+	// Grown-item types retain the exact cultivar. Other product types (mobs and
+	// aquaculture items) keep their historical constructor argument contract.
+	var/product_argument = name
+	if(ispath(product_type, /obj/item/reagent_containers/food/snacks/grown) || ispath(product_type, /obj/item/grown))
+		product_argument = src
+	var/atom/movable/product = new product_type(spawning_loc, product_argument)
 	// Set descriptions
 	if(product_desc)
 		product.desc = product_desc
@@ -876,24 +869,19 @@ be put into the global datum list until the product is harvested, though. */
 	if(GET_SEED_TRAIT(src, TRAIT_IMMUTABLE) > 0) return
 
 	//Set up some basic information.
-	var/datum/seed/new_seed = new
+	var/datum/seed/new_seed = new src.type
 	new_seed.name =            "new line"
 	new_seed.uid =              0
 	new_seed.roundstart =       0
-	new_seed.can_self_harvest = can_self_harvest
-	new_seed.kitchen_tag =      kitchen_tag
-	new_seed.trash_type =       trash_type
-	new_seed.product_type =     product_type
-	//Copy over everything else.
-	if(mutants)        new_seed.mutants = mutants.Copy()
-	if(chems)          new_seed.chems = chems.Copy()
-	if(consume_gasses) new_seed.consume_gasses = consume_gasses.Copy()
-	if(exude_gasses)   new_seed.exude_gasses = exude_gasses.Copy()
-
+	new_seed.mysterious =       mysterious
 	new_seed.seed_name =            "[(roundstart ? "[(modified ? "modified" : "mutant")] " : "")][seed_name]"
 	new_seed.display_name =         "[(roundstart ? "[(modified ? "modified" : "mutant")] " : "")][display_name]"
 	new_seed.seed_noun =            seed_noun
-	new_seed.traits = traits.Copy()
+	QDEL_NULL(new_seed.species)
+	QDEL_NULL(new_seed.genome)
+	new_seed.species = species
+	new_seed.genome = genome.clone()
+	new_seed.bind_genome_compatibility()
 	new_seed.update_growth_stages()
 	return new_seed
 

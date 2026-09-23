@@ -6,7 +6,7 @@
 	seed_noun = SEED_NOUN_EGGS
 	mutants = null
 
-/datum/seed/mollusc/New()
+/datum/seed/mollusc/setup_traits()
 	..()
 	SET_SEED_TRAIT(src, TRAIT_MATURATION, 10)
 	SET_SEED_TRAIT(src, TRAIT_PRODUCTION, 1)
@@ -29,7 +29,7 @@
 	display_name = "clam bed"
 	product_type = /obj/item/mollusc/clam
 
-/datum/seed/mollusc/clam/New()
+/datum/seed/mollusc/clam/setup_traits()
 	..()
 	SET_SEED_TRAIT(src, TRAIT_PRODUCT_COLOUR, "#9aaca6")
 	SET_SEED_TRAIT(src, TRAIT_PLANT_COLOUR, "#9aaca6")
@@ -43,7 +43,7 @@
 	display_name = "barnacle bed"
 	product_type = /obj/item/mollusc/barnacle
 
-/datum/seed/mollusc/barnacle/New()
+/datum/seed/mollusc/barnacle/setup_traits()
 	..()
 	SET_SEED_TRAIT(src, TRAIT_PRODUCT_COLOUR, "#c1c0b6")
 	SET_SEED_TRAIT(src, TRAIT_PLANT_COLOUR, "#c1c0b6")
@@ -57,7 +57,7 @@
 	display_name = "rasval clam bed"
 	product_type = /obj/item/mollusc/clam/rasval
 
-/datum/seed/mollusc/clam/rasval/New()
+/datum/seed/mollusc/clam/rasval/setup_traits()
 	..()
 	SET_SEED_TRAIT(src, TRAIT_PRODUCT_COLOUR, "#9aaca6")
 	SET_SEED_TRAIT(src, TRAIT_PLANT_COLOUR, "#9aaca6")

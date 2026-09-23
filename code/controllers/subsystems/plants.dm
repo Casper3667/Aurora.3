@@ -8,8 +8,12 @@ SUBSYSTEM_DEF(plants)
 
 	/// Stores generated fruit descs.
 	var/list/product_descs = list()
-	/// All seed data stored here.
+	/// Legacy alias for cultivars. Kept while downstream systems migrate.
 	var/list/seeds = list()
+	/// All base lines and round-created cultivars, keyed by stable id.
+	var/list/cultivars
+	/// Monotonic cultivar identifier; unlike seeds.len this cannot collide.
+	var/next_seed_uid = 1
 	/// Gene obfuscation for delicious trial and error goodness.
 	var/list/gene_tag_masks = list()
 	/// Reverse lookup for gene_tag_masks, keyed by real gene tag.
@@ -34,6 +38,7 @@ SUBSYSTEM_DEF(plants)
 	return ..()
 
 /datum/controller/subsystem/plants/Initialize(timeofday)
+	cultivars = seeds
 	// Build the icon lists.
 	for(var/icostate in icon_states('icons/obj/hydroponics_growing.dmi'))
 		var/split = findtext(icostate,"-")
@@ -59,9 +64,12 @@ SUBSYSTEM_DEF(plants)
 	// Populate the global seed datum list.
 	for(var/type in typesof(/datum/seed)-/datum/seed)
 		var/datum/seed/S = new type
-		seeds[S.name] = S
-		S.uid = "[seeds.len]"
+		if(S.name in seeds)
+			crash_with("Duplicate plant species id '[S.name]' while registering [S.type].")
+			continue
+		S.uid = "[next_seed_uid++]"
 		S.roundstart = 1
+		seeds[S.name] = S
 
 	//Might as well mask the gene types while we're at it.
 	var/list/gene_datums = GET_SINGLETON_TYPE_MAP(/singleton/plantgene)
@@ -95,6 +103,8 @@ SUBSYSTEM_DEF(plants)
 	if (istype(SSplants))
 		src.product_descs = SSplants.product_descs
 		src.seeds = SSplants.seeds
+		src.cultivars = src.seeds
+		src.next_seed_uid = SSplants.next_seed_uid
 		src.gene_tag_masks = SSplants.gene_tag_masks
 		src.gene_masks_by_tag = SSplants.gene_masks_by_tag
 		src.plant_icon_cache = SSplants.plant_icon_cache
@@ -128,17 +138,18 @@ SUBSYSTEM_DEF(plants)
 	processing -= plant
 
 /// Proc for creating a random seed type.
-/datum/controller/subsystem/plants/proc/create_random_seed(var/survive_on_station)
+/datum/controller/subsystem/plants/proc/create_random_seed(var/survive_on_station, var/seed_noun)
 	var/datum/seed/seed = new()
 	seed.randomize()
-	seed.uid = seeds.len + 1
-	seed.name = "[seed.uid]"
-	seeds[seed.name] = seed
+	if(seed_noun)
+		seed.seed_noun = seed_noun
+		seed.refresh_species()
+	register_cultivar(seed)
 
 	if(survive_on_station)
 		if(seed.consume_gasses)
-			seed.consume_gasses[GAS_PHORON] = null
-			seed.consume_gasses[GAS_CO2] = null
+			seed.consume_gasses -= GAS_PHORON
+			seed.consume_gasses -= GAS_CO2
 		if(seed.chems && !isnull(seed.chems[/singleton/reagent/acid/polyacid]))
 			seed.chems[/singleton/reagent/acid/polyacid] = null // Eating through the hull will make these plants completely inviable, albeit very dangerous.
 			seed.chems -= null // Setting to null does not actually remove the entry, which is weird.
@@ -149,6 +160,27 @@ SUBSYSTEM_DEF(plants)
 		SET_SEED_TRAIT(seed, TRAIT_LOWKPA_TOLERANCE, 25)
 		SET_SEED_TRAIT(seed, TRAIT_HIGHKPA_TOLERANCE, 200)
 	return seed
+
+/// Registers a runtime cultivar and gives it a stable, collision-free round id.
+/datum/controller/subsystem/plants/proc/register_cultivar(datum/seed/seed)
+	if(!seed)
+		return null
+	if(!cultivars)
+		cultivars = seeds
+	if(seed.name != "new line" && cultivars[seed.name] == seed)
+		return seed.name
+	seed.uid = "[next_seed_uid++]"
+	seed.name = "[seed.uid]"
+	if(!seed.species?.id)
+		seed.refresh_species()
+	cultivars[seed.name] = seed
+	return seed.name
+
+/datum/controller/subsystem/plants/proc/get_cultivar(cultivar_id)
+	var/list/registry = cultivars
+	if(!registry)
+		registry = seeds
+	return registry[cultivar_id]
 
 /datum/controller/subsystem/plants/proc/get_gene_mask(var/gene_tag)
 	return gene_masks_by_tag[gene_tag] || gene_tag

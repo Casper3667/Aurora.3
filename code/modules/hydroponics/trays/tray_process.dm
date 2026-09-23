@@ -1,172 +1,106 @@
 /obj/structure/machinery/portable_atmospherics/hydroponics/process()
-
-	// If there is no power, and stasis is enabled, disable stasis.
+	// Stasis needs power and freezes both the plant and its growing medium.
 	if((stat & (NOPOWER|BROKEN)) && stasis)
 		stasis = FALSE
 		update_use_power(POWER_USE_IDLE)
-
-	// If the tray is under stasis, return now and process nothing.
 	if(stasis)
 		return
+	sync_model_from_legacy()
 
-	// Handle nearby smoke if any.
 	for(var/obj/effect/smoke/chem/smoke in view(1, src))
 		if(smoke.reagents.total_volume)
 			smoke.reagents.trans_to_obj(src, 5, copy = 1)
 
-	//Do this even if we're not ready for a plant cycle.
 	process_reagents()
-
-	// Update values every cycle rather than every process() tick.
 	if(force_update)
-		force_update = 0
-	else if(world.time < (lastcycle + cycledelay))
+		force_update = FALSE
+	else if(world.time < lastcycle + cycledelay)
 		return
 	lastcycle = world.time
 
-	// Mutation level drops each main tick.
-	mutation_level -= rand(2,4)
+	sync_model_from_legacy()
+	var/datum/plant_growing_medium/medium = growing_medium
 
-	// Weeds like water and nutrients, there's a chance the weed population will increase.
-	// Bonus chance if the tray is unoccupied.
-	if(!mechanical) // Changes it so that only soil plots need to worry about weeds.
-		if(waterlevel > 10 && nutrilevel > 2 && prob(isnull(seed) ? 5 : 1))
-			weedlevel += 1 * HYDRO_SPEED_MULTIPLIER
-
-	// There's a chance for a weed explosion to happen if the weeds take over.
-	// Plants that are themselves weeds (weed_tolerance > 10) are unaffected.
-	if (weedlevel >= 10 && prob(10))
-		if(!seed || weedlevel >= GET_SEED_TRAIT(seed, TRAIT_WEED_TOLERANCE))
+	// Weed pressure also accrues continuously at the old average rate.
+	if(!mechanical && medium.water > 10 && medium.nutrients > 2)
+		medium.weeds += (plant ? 0.01 : 0.05) * HYDRO_SPEED_MULTIPLIER
+	if(medium.weeds >= 10)
+		if(!plant || medium.weeds >= GET_SEED_TRAIT(plant.line, TRAIT_WEED_TOLERANCE))
+			sync_legacy_from_model()
 			weed_invasion()
+			sync_model_from_legacy()
 
-	// If there is no seed data (and hence nothing planted),
-	// or the plant is dead, process nothing further.
-	if(!seed || dead)
-		if(mechanical) update_icon() //Harvesting would fail to set alert icons properly.
+	if(!plant || plant.dead)
+		medium.sanitize()
+		sync_legacy_from_model()
+		if(mechanical)
+			update_icon()
 		return
 
-	//Highly mutable plants have a chance of mutating every tick.
-	if(GET_SEED_TRAIT(seed, TRAIT_IMMUTABLE) == -1)
-		var/mut_prob = rand(1,100)
-		if(mut_prob <= 5) mutate(mut_prob == 1 ? 2 : 1)
+	var/datum/seed/line = plant.line
+	var/immutability = GET_SEED_TRAIT(line, TRAIT_IMMUTABLE)
+	// Highly mutable plants gain a steady five exposure per cycle: the expected
+	// rate of the old 5% roll, without arbitrarily succeeding or failing.
+	if(immutability == -1)
+		plant.mutation_pressure += 5
+	if(immutability <= 0 && plant.mutation_pressure >= 100)
+		var/mutation_severity = plant.mutation_pressure >= 115 ? 2 : 1
+		plant.mutation_count++
+		if(immutability == -1 && !(plant.mutation_count % 5))
+			mutation_severity = 2
+		sync_legacy_from_model()
+		mutate(mutation_severity)
+		sync_model_from_legacy()
+		plant.mutation_pressure = 0
+		line = plant.line
+	else if(immutability != -1)
+		plant.mutation_pressure = max(0, plant.mutation_pressure - 3)
 
-	// Other plants also mutate if enough mutagenic compounds have been added.
-	if(!GET_SEED_TRAIT(seed, TRAIT_IMMUTABLE))
-		if(prob(min(mutation_level,100)))
-			mutate((rand(100) < 15) ? 2 : 1)
-			mutation_level = 0
-
-	// Maintain tray nutrient and water levels.
-	if(GET_SEED_TRAIT(seed, TRAIT_NUTRIENT_CONSUMPTION) > 0 && nutrilevel > 0 && prob(25))
-		nutrilevel -= max(0,GET_SEED_TRAIT(seed, TRAIT_NUTRIENT_CONSUMPTION) * HYDRO_SPEED_MULTIPLIER)
-	if(GET_SEED_TRAIT(seed, TRAIT_WATER_CONSUMPTION) > 0 && waterlevel > 0 && prob(25))
-		waterlevel -= max(0,GET_SEED_TRAIT(seed, TRAIT_WATER_CONSUMPTION) * HYDRO_SPEED_MULTIPLIER)
-
-	// Make sure the plant is not starving or thirsty. Adequate
-	// water and nutrients will cause a plant to become healthier.
-	var/healthmod = rand(1,3) * HYDRO_SPEED_MULTIPLIER
-	if(GET_SEED_TRAIT(seed, TRAIT_REQUIRES_NUTRIENTS) && prob(35))
-		plant_health += (nutrilevel < 2 ? -healthmod : healthmod)
-	if(GET_SEED_TRAIT(seed, TRAIT_REQUIRES_WATER) && prob(35))
-		plant_health += (waterlevel < 10 ? -healthmod : healthmod)
-
-	// Check that pressure, heat and light are all within bounds.
-	// First, handle an open system or an unconnected closed system.
-	var/turf/T = loc
-	var/datum/gas_mixture/environment
-	// If we're closed, take from our internal sources.
+	var/turf/current_turf = get_turf(src)
+	var/datum/gas_mixture/atmosphere
 	if(closed_system && (connected_port || holding))
-		environment = air_contents
-	// If atmos input is not there, grab from turf.
-	if(!environment && istype(T)) environment = T.return_air()
-	if(!environment) return
+		atmosphere = air_contents
+	if(!atmosphere && current_turf)
+		atmosphere = current_turf.return_air()
+	if(!atmosphere)
+		medium.sanitize()
+		plant.sanitize()
+		sync_legacy_from_model()
+		return
 
-	// This carries the product of the handle_enviroment proc, so we can use it for multiple things.
-	var/environmental_damage
-	// This determines the probability of growth, for use with the get_probability_of_growth proc.
-	var/probability_of_growth
-
-	// Seed datum handles gasses, light and pressure relevant to whether the plant should be damaged, and what the probability of growth should be.
-	if(mechanical && closed_system)
-		environmental_damage = seed.handle_environment(T,environment,tray_light)
-		probability_of_growth = seed.get_probability_of_growth(T,environment,tray_light)
-	else
-		environmental_damage = seed.handle_environment(T,environment)
-		probability_of_growth = seed.get_probability_of_growth(T,environment)
-
-	// Reduce plant_health by however much handle_environent returned.
-	plant_health -= environmental_damage
-
-	// If we're attached to a pipenet, then we should let the pipenet know we might have modified some gasses
-	if (closed_system && connected_port)
+	var/light_supplied = closed_system ? tray_light : current_turf.get_lumcount(0, 3) * 5
+	var/datum/plant_environment/environment = new(current_turf, atmosphere, light_supplied)
+	var/datum/plant_tick_result/tick_result = plant.process_cycle(environment, medium, HYDRO_SPEED_MULTIPLIER)
+	var/plant_died = tick_result.died
+	if(closed_system && connected_port)
 		update_connected_network()
 
-	// Handle light requirements for upcoming logic.
-	var/light_supplied
-	if(!closed_system)
-		light_supplied = T.get_lumcount(0, 3) * 5
-	else
-		light_supplied = tray_light
-
-	// We only let the plant grow if they're within their light and heat tolerances.
-	if(!seed.check_light_tolerances(light_supplied) && !seed.check_heat_tolerances(environment))
-		// Roll the dice on advancing plant age.
-		if(prob(probability_of_growth)) age += 1 * HYDRO_SPEED_MULTIPLIER
-
-	// Toxin levels beyond the plant's tolerance cause damage, but
-	// toxins are sucked up each tick and slowly reduce over time.
-	if(toxins > 0)
-		var/toxin_uptake = max(1,round(toxins/10))
-		if(toxins > GET_SEED_TRAIT(seed, TRAIT_TOXINS_TOLERANCE))
-			plant_health -= toxin_uptake
-		toxins -= toxin_uptake
-
-	// Check for pests and weeds.
-	// Some carnivorous plants happily eat pests.
-	if(pestlevel > 0)
-		if(GET_SEED_TRAIT(seed, TRAIT_CARNIVOROUS))
-			plant_health += HYDRO_SPEED_MULTIPLIER
-			pestlevel -= HYDRO_SPEED_MULTIPLIER
-		else if (pestlevel >= GET_SEED_TRAIT(seed, TRAIT_PEST_TOLERANCE))
-			plant_health -= HYDRO_SPEED_MULTIPLIER
-
-	// Some plants thrive and live off of weeds.
-	if(weedlevel > 0)
-		if(GET_SEED_TRAIT(seed, TRAIT_PARASITE))
-			plant_health += HYDRO_SPEED_MULTIPLIER
-			weedlevel -= HYDRO_SPEED_MULTIPLIER
-		else if (weedlevel >= GET_SEED_TRAIT(seed, TRAIT_WEED_TOLERANCE))
-			plant_health -= HYDRO_SPEED_MULTIPLIER
-
-	// Handle life and death.
-	// When the plant dies, weeds thrive and pests die off.
-	check_health()
-
-	// If enough time (in cycles, not ticks) has passed since the plant was harvested, we're ready to harvest again.
-	if((age > GET_SEED_TRAIT(seed, TRAIT_MATURATION)) && ((age - lastproduce) > GET_SEED_TRAIT(seed, TRAIT_PRODUCTION)) && (!harvest && !dead))
-		// If the plant matures while not at either its light or heat preference, it becomes stunted, reducing its yield on harvest.
-		// Better grow your plants better next time.
-		if(!seed.check_light_preferences(light_supplied) || !seed.check_heat_preferences(environment))
-			stunted = TRUE
-
-		harvest = TRUE
-		lastproduce = age
-		if(GET_SEED_TRAIT(seed, TRAIT_SPOROUS) && !closed_system)
-			seed.create_spores(get_turf(src))
+	if(tick_result.died)
+		sync_legacy_from_model()
+		die()
+		sync_model_from_legacy()
+	else if(tick_result.became_harvestable)
+		if(GET_SEED_TRAIT(line, TRAIT_SPOROUS) && !closed_system)
+			line.create_spores(get_turf(src))
 			visible_message(SPAN_DANGER("\The [src] releases its spores!"))
+	qdel(tick_result)
+	qdel(environment)
+	if(plant_died)
+		return
 
-	// If we're a vine which is not in a closed tray and is at least half mature, and there's no vine currently on our turf: make one (maybe)
-	if(!closed_system && GET_SEED_TRAIT(seed, TRAIT_SPREAD) == 2 && 2 * age >= GET_SEED_TRAIT(seed, TRAIT_MATURATION) && !(locate(/obj/effect/plant) in get_turf(src)) && \
-		prob(2 * GET_SEED_TRAIT(seed, TRAIT_POTENCY)))
+	if(!closed_system && GET_SEED_TRAIT(line, TRAIT_SPREAD) == 2 && 2 * plant.age >= GET_SEED_TRAIT(line, TRAIT_MATURATION) && !(locate(/obj/effect/plant) in get_turf(src)))
+		plant.wild_spread_progress += min(1, 2 * GET_SEED_TRAIT(line, TRAIT_POTENCY) / 100) * plant.growth_variance
+		if(plant.wild_spread_progress >= 1)
+			plant.wild_spread_progress -= 1
+			new /obj/effect/plant(get_turf(src), line)
 
-		new /obj/effect/plant(get_turf(src), seed)
+	// Pest pressure accrues continuously at the old average arrival rate.
+	medium.pests += 0.003 * HYDRO_SPEED_MULTIPLIER
 
-	if(prob(3))  // On each tick, there's a chance the pest population will increase
-		pestlevel += 0.1 * HYDRO_SPEED_MULTIPLIER
-
-	// Some seeds will self-harvest if you don't keep a lid on them.
-	if(seed && seed.can_self_harvest && harvest && !closed_system && prob(5))
-		harvest()
-
-	check_health()
-	return
+	sync_legacy_from_model()
+	if(plant.line.species.can_self_harvest && plant.harvest_ready && !closed_system)
+		plant.self_harvest_progress += 0.05 * HYDRO_SPEED_MULTIPLIER
+		if(plant.self_harvest_progress >= 1)
+			harvest()
+			return
+	update_icon()

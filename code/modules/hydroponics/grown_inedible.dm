@@ -11,6 +11,7 @@
 		)
 	storage_slot_sort_by_name = TRUE
 	var/plantname
+	var/datum/seed/seed
 	var/potency = 1
 
 /obj/item/grown/Initialize(newloc,planttype)
@@ -21,9 +22,14 @@
 	R.my_atom = src
 
 	//Handle some post-spawn var stuff.
-	if(planttype)
+	if(istype(planttype, /datum/seed))
+		seed = planttype
+		plantname = seed.name
+	else if(planttype)
 		plantname = planttype
-		var/datum/seed/S = SSplants.seeds[plantname]
+	if(plantname)
+		var/datum/seed/S = seed || SSplants.get_cultivar(plantname)
+		seed = S
 		if(!S || !S.chems)
 			return
 

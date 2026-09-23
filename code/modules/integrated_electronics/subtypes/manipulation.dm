@@ -884,12 +884,7 @@
 
 		if(2)
 			if(TR.seed)
-				TR.age = 0
-				TR.health = 0
-				if(TR.harvest)
-					TR.harvest = FALSE
-				qdel(TR.seed)
-				TR.seed = null
+				TR.clear_plant()
 
 			TR.weedlevel = 0
 			TR.dead = 0
@@ -904,12 +899,7 @@
 				if(!TR.seed)
 					var/obj/item/seeds/S = O
 					acting_object.visible_message(SPAN_NOTICE("[acting_object] plants [O]."))
-					TR.seed = S.seed
-					TR.lastproduce = 0
-					TR.dead = 0
-					TR.age = 1
-					TR.health = 100
-					TR.lastcycle = world.time
+					TR.plant_seed(S.seed)
 					qdel(O)
 					TR.update_icon()
 					TR.check_health()
@@ -949,8 +939,8 @@
 
 	for(var/i in 1 to rand(1, 4))
 		var/obj/item/seeds/seeds = new(get_turf(O))
-		seeds.seed = SSplants.seeds[O.plantname]
-		seeds.seed_type = SSplants.seeds[O.seed.name]
+		seeds.seed = O.seed || SSplants.get_cultivar(O.plantname)
+		seeds.seed_type = seeds.seed?.name
 		seeds.update_seed()
 		seed_output += seeds
 

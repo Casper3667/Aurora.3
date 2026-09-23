@@ -48,7 +48,7 @@
 	if(istype(T))
 		health -= seed.handle_environment(T,T.return_air(),null,1)
 	if(health < maxhealth)
-		health += rand(3,5)
+		health += 4
 		refresh_icon()
 		if(health > maxhealth)
 			health = maxhealth
@@ -73,41 +73,42 @@
 		update_neighbors()
 
 	if(sampled)
-		//Should be between 2-7 for given the default range of values for TRAIT_PRODUCTION
-		var/chance
-		if(!GET_SEED_TRAIT(seed, TRAIT_PRODUCTION))
-			chance = 1
-		else
-			chance = max(1, round(30/GET_SEED_TRAIT(seed, TRAIT_PRODUCTION)))
-		if(prob(chance))
+		var/recovery_time = max(1, GET_SEED_TRAIT(seed, TRAIT_PRODUCTION))
+		sample_regrowth_progress += 0.3 / recovery_time
+		if(sample_regrowth_progress >= 1)
 			sampled = 0
+			sample_regrowth_progress = 0
 
-	if(is_mature() && neighbors.len && prob(spread_chance))
-		//spread to 1-3 adjacent turfs depending on yield trait.
+	if(is_mature() && neighbors.len && spread_chance > 0)
+		// Preserve the old long-run spread rate without rerolling whether the
+		// plant grows on every controller tick.
 		var/max_spread = between(1, round(GET_SEED_TRAIT(seed, TRAIT_YIELD)*3/14), 3)
-
-		do_spread(spread_chance, max_spread)
+		var/spread_rate = clamp(spread_chance / 100, 0, 1)
+		spread_progress += spread_rate * spread_rate * max_spread
+		var/spread_count = FLOOR(spread_progress, 1)
+		if(spread_count > 0)
+			spread_progress -= spread_count
+			do_spread(spread_count)
 
 	// We shouldn't have spawned if the controller doesn't exist.
 	check_health()
 	if(neighbors.len || health != maxhealth || buckled || !is_mature())
 		SSplants.add_plant(src)
 
-/obj/effect/plant/proc/do_spread(spread_chance, max_spread)
+/obj/effect/plant/proc/do_spread(spread_count)
 	set waitfor = FALSE
-	for(var/i in 1 to max_spread)
-		if(prob(spread_chance))
-			sleep(rand(3,5))
-			if(!neighbors.len)
-				return
+	for(var/i in 1 to spread_count)
+		sleep(rand(3,5))
+		if(!neighbors.len)
+			return
 
-			var/turf/target_turf = pick(neighbors)
-			var/obj/effect/plant/child = new(get_turf(src),seed,parent)
-			// This should do a little bit of animation.
-			addtimer(CALLBACK(src, PROC_REF(do_move), target_turf, child), 1)
-			// Update neighboring squares.
-			for(var/obj/effect/plant/neighbor in range(1,target_turf))
-				neighbor.neighbors -= target_turf
+		var/turf/target_turf = pick(neighbors)
+		var/obj/effect/plant/child = new(get_turf(src),seed,parent)
+		// This should do a little bit of animation.
+		addtimer(CALLBACK(src, PROC_REF(do_move), target_turf, child), 1)
+		// Update neighboring squares.
+		for(var/obj/effect/plant/neighbor in range(1,target_turf))
+			neighbor.neighbors -= target_turf
 
 /obj/effect/plant/proc/do_move(turf/target, obj/effect/plant/child)
 	child.forceMove(target)

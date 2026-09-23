@@ -16,6 +16,10 @@
 	/// Set to 0 to stop it from drawing the alert lights.
 	var/mechanical = 1
 	var/base_name = "tray"
+	/// Authoritative runtime state for the currently planted organism.
+	var/datum/plant_instance/plant
+	/// Authoritative resources and contaminants in this tray or plot.
+	var/datum/plant_growing_medium/growing_medium
 
 	// --- Plant maintenance vars. ---
 	/// Water (max 100)
@@ -254,6 +258,16 @@
 
 /obj/structure/machinery/portable_atmospherics/hydroponics/New()
 	..()
+	growing_medium = new
+	growing_medium.water = waterlevel
+	growing_medium.nutrients = nutrilevel
+	growing_medium.pests = pestlevel
+	growing_medium.weeds = weedlevel
+	growing_medium.toxins = toxins
+	growing_medium.max_water = maxWaterLevel
+	growing_medium.max_nutrients = maxNutriLevel
+	growing_medium.max_pests = maxPestLevel
+	growing_medium.max_weeds = maxWeedLevel
 	temp_chem_holder = new()
 	temp_chem_holder.create_reagents(10)
 	temp_chem_holder.atom_flags |= ATOM_FLAG_OPEN_CONTAINER
@@ -262,22 +276,112 @@
 		connect()
 	update_icon()
 
+/obj/structure/machinery/portable_atmospherics/hydroponics/Destroy()
+	QDEL_NULL(plant)
+	QDEL_NULL(growing_medium)
+	QDEL_NULL(temp_chem_holder)
+	return ..()
+
+/** Imports state written through the old tray fields during migration. */
+/obj/structure/machinery/portable_atmospherics/hydroponics/proc/sync_model_from_legacy()
+	if(seed)
+		if(!plant || plant.line != seed)
+			QDEL_NULL(plant)
+			plant = new(seed, age)
+		plant.age = age
+		plant.health = plant_health
+		plant.dead = dead
+		plant.harvest_ready = harvest
+		plant.stunted = stunted
+		plant.sampled = sampled
+		plant.last_produce_age = lastproduce
+		plant.yield_bonus = yield_mod
+		plant.mutation_pressure = mutation_level
+		plant.mutation_bonus = mutation_mod
+	else
+		QDEL_NULL(plant)
+
+	if(!growing_medium)
+		growing_medium = new
+	growing_medium.water = waterlevel
+	growing_medium.nutrients = nutrilevel
+	growing_medium.pests = pestlevel
+	growing_medium.weeds = weedlevel
+	growing_medium.toxins = toxins
+	growing_medium.max_water = maxWaterLevel
+	growing_medium.max_nutrients = maxNutriLevel
+	growing_medium.max_pests = maxPestLevel
+	growing_medium.max_weeds = maxWeedLevel
+
+/// Publishes model state for callers which still read the old tray fields.
+/obj/structure/machinery/portable_atmospherics/hydroponics/proc/sync_legacy_from_model()
+	if(plant)
+		seed = plant.line
+		age = plant.age
+		plant_health = plant.health
+		dead = plant.dead
+		harvest = plant.harvest_ready
+		stunted = plant.stunted
+		sampled = plant.sampled
+		lastproduce = plant.last_produce_age
+		yield_mod = plant.yield_bonus
+		mutation_level = plant.mutation_pressure
+		mutation_mod = plant.mutation_bonus
+	else
+		seed = null
+		age = 0
+		plant_health = 0
+		dead = FALSE
+		harvest = FALSE
+		stunted = FALSE
+		sampled = FALSE
+		lastproduce = 0
+		yield_mod = 0
+		mutation_level = 0
+		mutation_mod = 0
+
+	if(growing_medium)
+		waterlevel = growing_medium.water
+		nutrilevel = growing_medium.nutrients
+		pestlevel = growing_medium.pests
+		weedlevel = growing_medium.weeds
+		toxins = growing_medium.toxins
+
+/// Installs a cultivar as a new plant without exposing mutable registry state.
+/obj/structure/machinery/portable_atmospherics/hydroponics/proc/plant_seed(datum/seed/line, starting_age = 1, health_multiplier = 1)
+	if(!line)
+		return FALSE
+	QDEL_NULL(plant)
+	plant = new(line, starting_age, health_multiplier)
+	lastcycle = world.time
+	sync_legacy_from_model()
+	return TRUE
+
+/// Removes only this tray's runtime plant. Cultivar definitions are registry-owned.
+/obj/structure/machinery/portable_atmospherics/hydroponics/proc/clear_plant()
+	QDEL_NULL(plant)
+	sync_legacy_from_model()
+
 /obj/structure/machinery/portable_atmospherics/hydroponics/bullet_act(obj/projectile/hitting_projectile, def_zone, piercing_hit)
+	sync_model_from_legacy()
 	//Don't act on seeds like dionaea that shouldn't change.
-	if(seed && GET_SEED_TRAIT(seed, TRAIT_IMMUTABLE) > 0)
+	if(plant && GET_SEED_TRAIT(plant.line, TRAIT_IMMUTABLE) > 0)
 		return BULLET_ACT_HIT
 
 	//Override for somatoray projectiles.
 	if(istype(hitting_projectile ,/obj/projectile/energy/floramut)&& prob(20))
 		if(istype(hitting_projectile, /obj/projectile/energy/floramut/gene))
 			var/obj/projectile/energy/floramut/gene/G = hitting_projectile
-			if(seed)
-				seed = seed.diverge_mutate_gene(G.gene, get_turf(loc))	//get_turf just in case it's not in a turf.
+			if(plant)
+				plant.line = plant.line.diverge_mutate_gene(G.gene, get_turf(loc))	//get_turf just in case it's not in a turf.
+				sync_legacy_from_model()
 		else
 			mutate(1)
 			return BULLET_ACT_HIT
 	else if(istype(hitting_projectile ,/obj/projectile/energy/florayield) && prob(20))
-		yield_mod = min(10,yield_mod+rand(1,2))
+		if(plant)
+			plant.yield_bonus = min(10, plant.yield_bonus + rand(1,2))
+			sync_legacy_from_model()
 		return BULLET_ACT_HIT
 
 	. = ..()
@@ -296,23 +400,35 @@
 
 /// If the plant should be dead, kill it. Otherwise, don't.
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/check_health()
-	if(seed && !dead && plant_health <= 0)
+	sync_model_from_legacy()
+	if(plant && !plant.dead && plant.health <= 0)
 		die()
-	check_level_sanity()
+		return
+	if(plant)
+		plant.sanitize()
+	if(growing_medium)
+		growing_medium.sanitize()
+	sync_legacy_from_model()
 	update_icon()
 
 /// Call this to kill a plant. Don't modify the dead variable directly.
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/die()
-	dead = TRUE
-	mutation_level = 0
-	stunted = FALSE
-	harvest = FALSE
-	weedlevel += 1 * HYDRO_SPEED_MULTIPLIER
-	pestlevel = 0
-	if(prob(min(25,max(1,GET_SEED_TRAIT(seed, TRAIT_POTENCY)/2))))
-		if(GET_SEED_TRAIT(seed, TRAIT_SPOROUS) && !closed_system)
-			seed.create_spores(get_turf(src))
+	sync_model_from_legacy()
+	if(!plant)
+		return
+	plant.dead = TRUE
+	plant.health = 0
+	plant.mutation_pressure = 0
+	plant.stunted = FALSE
+	plant.harvest_ready = FALSE
+	growing_medium.weeds += HYDRO_SPEED_MULTIPLIER
+	growing_medium.pests = 0
+	if(prob(min(25, max(1, GET_SEED_TRAIT(plant.line, TRAIT_POTENCY) / 2))))
+		if(GET_SEED_TRAIT(plant.line, TRAIT_SPOROUS) && !closed_system)
+			plant.line.create_spores(get_turf(src))
 			visible_message(SPAN_DANGER("\The [src] releases its spores!"))
+	growing_medium.sanitize()
+	sync_legacy_from_model()
 	update_icon()
 
 /// Process reagents being input into the tray.
@@ -321,144 +437,143 @@
 
 	if(reagents.total_volume <= 0)
 		return
+	sync_model_from_legacy()
 
-	reagents.trans_to_obj(temp_chem_holder, min(reagents.total_volume,rand(1,3)))
+	// Uptake is continuous and predictable; reagent contents still determine the effect.
+	reagents.trans_to_obj(temp_chem_holder, min(reagents.total_volume, 2))
 
 	for(var/_R in temp_chem_holder.reagents.reagent_volumes)
 
 		var/reagent_total = REAGENT_VOLUME(temp_chem_holder.reagents, _R)
 
-		if(seed && !dead)
+		if(plant && !plant.dead)
 			//Handle some general level adjustments.
 			if(toxic_reagents[_R])
-				toxins += toxic_reagents[_R]         * reagent_total
+				growing_medium.toxins += toxic_reagents[_R] * reagent_total
 			if(weedkiller_reagents[_R])
-				weedlevel -= weedkiller_reagents[_R] * reagent_total
+				growing_medium.weeds -= weedkiller_reagents[_R] * reagent_total
 			if(pestkiller_reagents[_R])
-				pestlevel += pestkiller_reagents[_R] * reagent_total
+				growing_medium.pests += pestkiller_reagents[_R] * reagent_total
 
 			// Beneficial reagents have a few impacts along with plant_health buffs.
 			if(beneficial_reagents[_R])
-				plant_health += beneficial_reagents[_R][1]       * reagent_total
-				yield_mod += beneficial_reagents[_R][2]    * reagent_total
-				mutation_mod += beneficial_reagents[_R][3] * reagent_total
+				plant.health += beneficial_reagents[_R][1] * reagent_total
+				plant.yield_bonus += beneficial_reagents[_R][2] * reagent_total
+				plant.mutation_bonus += beneficial_reagents[_R][3] * reagent_total
 
 			// Mutagen is distinct from the previous types and mostly has a chance of proccing a mutation.
 			if(mutagenic_reagents[_R])
-				mutation_level += reagent_total*mutagenic_reagents[_R]+mutation_mod
+				plant.mutation_pressure += reagent_total * mutagenic_reagents[_R] + plant.mutation_bonus
 
 		// Handle nutrient refilling.
 		if(nutrient_reagents[_R])
-			nutrilevel += nutrient_reagents[_R]  * reagent_total
+			growing_medium.nutrients += nutrient_reagents[_R] * reagent_total
 
 		// Handle water and water refilling.
 		var/water_added = 0
 		if(water_reagents[_R])
 			var/water_input = water_reagents[_R] * reagent_total
 			water_added += water_input
-			waterlevel += water_input
+			growing_medium.water += water_input
 
 		// Water dilutes toxin level.
 		if(water_added > 0)
-			toxins -= round(water_added/4)
+			growing_medium.toxins -= round(water_added/4)
 
 	temp_chem_holder.reagents.clear_reagents()
-	check_health()
+	if(plant && plant.health <= 0 && !plant.dead)
+		sync_legacy_from_model()
+		die()
+	else if(plant)
+		plant.sanitize()
+	growing_medium.sanitize()
+	sync_legacy_from_model()
+	update_icon()
 
 /// Harvests the product of a plant.
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/harvest(var/mob/user)
-	//Harvest the product of the plant,
-	if(!seed || !harvest)
+	sync_model_from_legacy()
+	if(!plant || !plant.harvest_ready)
 		return
 
 	if(closed_system)
 		if(user) to_chat(user, "You can't harvest from the plant while the lid is shut.")
 		return
 
+	var/datum/seed/line = plant.line
 	if(user)
-		if(!seed.harvest(user,yield_mod,stunted_status = stunted))
+		if(!line.harvest(user, plant.yield_bonus, stunted_status = plant.stunted))
 			return
 	else
-		seed.harvest(get_turf(src),yield_mod, stunted_status = stunted)
-	// Reset values.
-	if(GET_SEED_TRAIT(seed, TRAIT_SPOROUS))
-		seed.create_spores(get_turf(src))
+		line.harvest(get_turf(src), plant.yield_bonus, stunted_status = plant.stunted)
+	if(GET_SEED_TRAIT(line, TRAIT_SPOROUS))
+		line.create_spores(get_turf(src))
 		visible_message(SPAN_DANGER("\The [src] releases its spores!"))
-	harvest = FALSE
-	stunted = FALSE
-	lastproduce = age
+	plant.harvest_ready = FALSE
+	plant.stunted = FALSE
+	plant.last_produce_age = plant.age
+	plant.self_harvest_progress = 0
 
 	// Defeat the supremacy of repeat-harvestable plants by making it so that bonus yield only applies for one harvest.
-	yield_mod = 0
+	plant.yield_bonus = 0
 
-	if(!GET_SEED_TRAIT(seed, TRAIT_HARVEST_REPEAT))
-		seed = null
-		dead = 0
-		age = 0
-		sampled = 0
-		mutation_mod = 0
-
-	check_health()
+	if(!GET_SEED_TRAIT(line, TRAIT_HARVEST_REPEAT))
+		clear_plant()
+	else
+		plant.sampled = FALSE
+		plant.mutation_bonus = 0
+		sync_legacy_from_model()
+	update_icon()
 	return
 
 /// Clears out a dead plant.
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/remove_dead(var/mob/user)
-	if(!user || !dead || !seed)
+	sync_model_from_legacy()
+	if(!user || !plant?.dead)
 		return
 
 	if(closed_system)
 		to_chat(user, "You can't remove the dead plant while the lid is shut.")
 		return
 
-	seed = null
-	dead = FALSE
-	sampled = 0
-	age = 0
-	yield_mod = 0
-	mutation_mod = 0
-
 	to_chat(user, "You remove the dead plant.")
-	lastproduce = 0
-	check_health()
+	clear_plant()
+	update_icon()
 	return
 
 /// If a weed growth is sufficient, this proc is called.
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/weed_invasion()
-	//Remove the seed if something is already planted.
-	if(seed) seed = null
-	seed = SSplants.seeds[pick(list("reishi","nettles","amanita","mushrooms","plumphelmet","towercap","harebells","weeds"))]
-	if(!seed) return //Weed does not exist, someone fucked up.
-
-	dead = FALSE
-	age = 0
-	plant_health = GET_SEED_TRAIT(seed, TRAIT_ENDURANCE)
-	lastcycle = world.time
-	stunted = FALSE
-	harvest = FALSE
-	weedlevel = 0
-	pestlevel = 0
-	sampled = 0
+	var/datum/seed/invasive_line = SSplants.get_cultivar(pick(list("reishi", "nettles", "amanita", "mushrooms", "plumphelmet", "towercap", "harebells", "weeds")))
+	if(!invasive_line)
+		return
+	plant_seed(invasive_line, 0)
+	growing_medium.weeds = 0
+	growing_medium.pests = 0
+	sync_legacy_from_model()
 	update_icon()
-	visible_message(SPAN_NOTICE("[src] has been overtaken by [seed.display_name]."))
+	visible_message(SPAN_NOTICE("[src] has been overtaken by [invasive_line.display_name]."))
 
 	return
 
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/mutate(var/severity)
-	// No seed, no mutations.
-	if(!seed)
+	sync_model_from_legacy()
+	if(!plant)
 		return
+	var/datum/seed/line = plant.line
 
 	// Check if we should even bother working on the current seed datum.
-	if(seed.mutants?.len && severity > 1)
+	if(line.mutants?.len && severity > 1)
 		mutate_species()
 		return
 
 	// We need to make sure we're not modifying one of the global seed datums.
 	// If it's not in the global list, then no products of the line have been
 	// harvested yet and it's safe to assume it's restricted to this tray.
-	if(!isnull(SSplants.seeds[seed.name]))
-		seed = seed.diverge()
-	seed.mutate(severity,get_turf(src))
+	if(SSplants.get_cultivar(line.name) == line)
+		line = line.diverge()
+	line.mutate(severity, get_turf(src))
+	plant.line = line
+	sync_legacy_from_model()
 
 	return
 
@@ -472,7 +587,7 @@
 /// This is in its own proc so we can call it via a ctrl + click.
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/change_lighting(var/mob/user)
 	var/new_light = tgui_input_list(usr, "Specify a light level.", "Set Light", list(0,1,2,3,4,5,6,7,8,9,10))
-	if(new_light)
+	if(!isnull(new_light))
 		tray_light = new_light
 		user.visible_message(SPAN_NOTICE("\The [user] sets \the [src] to a light level of [tray_light] lumens."),
 		SPAN_NOTICE("You set the \the [src] to a light level of [tray_light] lumens."))
@@ -486,35 +601,28 @@
 
 /// Verifies that all values are what they should be.
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/check_level_sanity()
-	if(seed)
-		plant_health = max(0,min(GET_SEED_TRAIT(seed, TRAIT_ENDURANCE), plant_health))
-	else
-		plant_health = 0
-		dead = FALSE
-		update_icon()
-
-	mutation_level = max(0,min(mutation_level,100))
-	nutrilevel =     max(0,min(nutrilevel,10))
-	waterlevel =     max(0,min(waterlevel,100))
-	pestlevel =      max(0,min(pestlevel,10))
-	weedlevel =      max(0,min(weedlevel,10))
-	toxins =         max(0,min(toxins,10))
+	sync_model_from_legacy()
+	if(plant)
+		plant.sanitize()
+	if(growing_medium)
+		growing_medium.sanitize()
+	sync_legacy_from_model()
 
 /obj/structure/machinery/portable_atmospherics/hydroponics/proc/mutate_species()
-	var/previous_plant = seed.display_name
-	var/newseed = seed.get_mutant_variant()
-	if(newseed in SSplants.seeds)
-		seed = SSplants.seeds[newseed]
-	else
+	sync_model_from_legacy()
+	if(!plant)
 		return
-
-	dead = FALSE
+	var/previous_plant = plant.line.display_name
+	var/newseed = plant.line.get_mutant_variant()
+	var/datum/seed/mutant_line = SSplants.get_cultivar(newseed)
+	if(!mutant_line)
+		return
+	plant.set_line(mutant_line)
+	sync_legacy_from_model()
 	mutate(1)
-	age = 0
-	plant_health = GET_SEED_TRAIT(seed, TRAIT_ENDURANCE)
 	lastcycle = world.time
-	harvest = FALSE
-	weedlevel = 0
+	growing_medium.weeds = 0
+	sync_legacy_from_model()
 
 	update_icon()
 	visible_message(SPAN_DANGER("The </span><span class='notice'>[previous_plant]</span><span class='danger'> has suddenly mutated into </span><span class='notice'>[seed.display_name]!"))
@@ -561,10 +669,8 @@
 		if(do_after(user, 1 SECOND))
 			playsound(src, 'sound/items/Wirecutter.ogg', 25, 1)
 			seed.harvest(user,yield_mod,1)
-			plant_health -= (rand(3,5)*10)
-
-			if(prob(30))
-				sampled = 1
+			plant_health -= 40
+			sampled = 1
 
 			// Bookkeeping.
 			check_health()
@@ -607,12 +713,8 @@
 			to_chat(user, "You plant the [S.seed.seed_name] [S.seed.seed_noun].")
 			playsound(src, 'sound/items/pickup/herb.ogg', 50, 1)
 			lastproduce = 0
-			seed = S.seed //Grab the seed datum.
-			dead = 0
-			age = 1
-			//Snowflakey, maybe move this to the seed datum
-			plant_health = (istype(S, /obj/item/seeds/cutting) ? round(GET_SEED_TRAIT(seed, TRAIT_ENDURANCE)/rand(2,5)) : GET_SEED_TRAIT(seed, TRAIT_ENDURANCE))
-			lastcycle = world.time
+			var/health_multiplier = istype(S, /obj/item/seeds/cutting) ? 0.3 : 1
+			plant_seed(S.seed, 1, health_multiplier)
 
 			qdel(attacking_item)
 

@@ -18,8 +18,8 @@ GLOBAL_LIST_EMPTY(plant_seed_sprites)
 
 /// Grabs the appropriate seed datum from the global list.
 /obj/item/seeds/proc/update_seed()
-	if(!seed && seed_type && !isnull(SSplants.seeds) && SSplants.seeds[seed_type])
-		seed = SSplants.seeds[seed_type]
+	if(!seed && seed_type && SSplants.get_cultivar(seed_type))
+		seed = SSplants.get_cultivar(seed_type)
 	update_appearance()
 
 /// Updates strings and icon appropriately based on seed datum.

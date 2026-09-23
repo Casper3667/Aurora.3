@@ -77,9 +77,13 @@
 	var/obj/effect/plant/parent
 	var/datum/seed/seed
 	var/sampled = 0
+	/// Deterministic recovery progress after a genetics sample is taken.
+	var/sample_regrowth_progress = 0
 	var/floor = 0
 	var/spread_chance = 40
 	var/spread_distance = 3
+	/// Continuous spread credit, replacing nested per-tick success rolls.
+	var/spread_progress = 0
 	var/evolve_chance = 2
 	var/mature_time		//minimum maturation time
 	var/last_tick = 0
@@ -111,14 +115,17 @@
 		return
 
 	if(!istype(newseed))
-		newseed = SSplants.seeds[DEFAULT_SEED]
+		newseed = SSplants.get_cultivar(DEFAULT_SEED)
 	seed = newseed
 	if(!seed)
 		qdel(src)
 		return
 
 	name = seed.display_name
-	maxhealth = round(GET_SEED_TRAIT(seed, TRAIT_ENDURANCE)/2)
+	maxhealth = max(1, round(GET_SEED_TRAIT(seed, TRAIT_ENDURANCE) / 2))
+	// /obj initialized health against the type's default maxhealth before the
+	// cultivar was known. New growth must begin as a sprout, not above maxhealth.
+	health = 1
 	if(GET_SEED_TRAIT(seed, TRAIT_SPREAD) == 2)
 		mouse_opacity = 2
 		max_growth = VINE_GROWTH_STAGES
@@ -275,11 +282,10 @@
 		if(sampled)
 			to_chat(user, SPAN_DANGER("You cannot take another sample from \the [src]."))
 			return
-		if(prob(70))
-			sampled = 1
 		seed.harvest(user,0,1)
-		health -= (rand(3,5)*5)
+		health -= 20
 		sampled = 1
+		sample_regrowth_progress = 0
 	else
 		playsound(loc, SFX_BREAK_WOOD, 50, TRUE)
 		var/damage = attacking_item.force ? attacking_item.force : 1 //always do at least a little damage

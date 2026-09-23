@@ -16,16 +16,17 @@
 		var/datum/seed/new_seed_type
 		if(istype(attacking_item, /obj/item/grown))
 			var/obj/item/grown/F = attacking_item
-			new_seed_type = SSplants.seeds[F.plantname]
+			new_seed_type = F.seed || SSplants.get_cultivar(F.plantname)
 		else
 			var/obj/item/reagent_containers/food/snacks/grown/F = attacking_item
-			new_seed_type = SSplants.seeds[F.plantname]
+			new_seed_type = F.seed || SSplants.get_cultivar(F.plantname)
 
 		if(new_seed_type)
 			to_chat(user, SPAN_NOTICE("You extract some seeds from [attacking_item]."))
 			var/produce = rand(1,4)
-			for(var/i = 0;i<=produce;i++)
+			for(var/i in 1 to produce)
 				var/obj/item/seeds/seeds = new(get_turf(src))
+				seeds.seed = new_seed_type
 				seeds.seed_type = new_seed_type.name
 				seeds.update_seed()
 		else

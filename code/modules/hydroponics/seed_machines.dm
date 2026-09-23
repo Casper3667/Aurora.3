@@ -94,7 +94,7 @@
 			to_chat(user, "There is already a seed loaded.")
 			return
 		var/obj/item/seeds/S = attacking_item
-		if(S.seed && S.GET_SEED_TRAIT(seed, TRAIT_IMMUTABLE) > 0)
+		if(S.seed && GET_SEED_TRAIT(S.seed, TRAIT_IMMUTABLE) > 0)
 			to_chat(user, "That seed is not compatible with our genetics technology.")
 		else
 			user.drop_from_inventory(attacking_item,src)
@@ -158,11 +158,10 @@
 
 			seed.forceMove(get_turf(src))
 
-			if(seed.seed.name == "new line" || isnull(SSplants.seeds[seed.seed.name]))
-				seed.seed.uid = SSplants.seeds.len + 1
-				seed.seed.name = "[seed.seed.uid]"
-				SSplants.seeds[seed.seed.name] = seed.seed
+			if(seed.seed.name == "new line" || !SSplants.get_cultivar(seed.seed.name))
+				SSplants.register_cultivar(seed.seed)
 
+			seed.seed_type = seed.seed.name
 			seed.update_seed()
 			visible_message("[icon2html(src, viewers(get_turf(src)))] [src] beeps and spits out [seed].")
 			seed = null
@@ -327,7 +326,7 @@
 		last_action = world.time
 		active = TRUE
 
-		if(!isnull(SSplants.seeds[seed.seed.name]))
+		if(SSplants.get_cultivar(seed.seed.name))
 			seed.seed = seed.seed.diverge(1)
 			seed.seed_type = seed.seed.name
 			seed.update_seed()
