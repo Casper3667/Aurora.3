@@ -166,20 +166,6 @@
 	groupable = TRUE
 	spawn_amount = 1
 
-/singleton/cargo_item/paperbin
-	category = "supply"
-	name = "paper bin"
-	supplier = "nanotrasen"
-	description = "Pre-stocked stationery bin filled with paper."
-	price = 12
-	items = list(
-		/obj/item/paper_bin
-	)
-	access = 0
-	container_type = "crate"
-	groupable = TRUE
-	spawn_amount = 1
-
 /singleton/cargo_item/stickypad
 	category = "supply"
 	name = "stickynote pad"
@@ -417,5 +403,3 @@
 	container_type = "box"
 	groupable = FALSE
 	spawn_amount = 1
-
-

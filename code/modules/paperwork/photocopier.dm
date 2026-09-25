@@ -24,6 +24,24 @@
 	var/insert_anim = "photocopier_scan"
 	/// Print animation.
 	var/print_animation = "photocopier_print"
+	/// Coordinate key used to persist toner without persisting the photocopier itself.
+	var/toner_persistence_attribute
+
+/obj/structure/machinery/photocopier/Initialize(mapload)
+	. = ..()
+	if(type != /obj/structure/machinery/photocopier || !mapload || !SSpersistence.map_supports_persistence || !is_station_level(z))
+		return
+
+	toner_persistence_attribute = "[x],[y],[z]"
+	var/datum/persistent_generic/saved_toner = SSpersistence.genericLoad(/singleton/persistent_type/generic/photocopier_toner, toner_persistence_attribute)
+	if(saved_toner && islist(saved_toner.content) && isnum(saved_toner.content["toner"]))
+		toner = clamp(saved_toner.content["toner"], 0, max_toner)
+
+/singleton/persistent_type/generic/photocopier_toner/finalization_hook()
+	for(var/obj/structure/machinery/photocopier/copier in SSmachinery.machinery)
+		if(copier.type != /obj/structure/machinery/photocopier || !copier.toner_persistence_attribute || !is_station_level(copier.z))
+			continue
+		SSpersistence.genericSave(/singleton/persistent_type/generic/photocopier_toner, list("toner" = copier.toner), copier.toner_persistence_attribute)
 
 /obj/structure/machinery/photocopier/attack_ai(mob/user as mob)
 	if(!ai_can_interact(user))

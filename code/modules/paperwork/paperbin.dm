@@ -12,8 +12,21 @@
 	layer = BELOW_OBJ_LAYER
 	/// How much generic paper stock is in the bin.
 	var/amount = 30
-	/// The of physical papers put in the bin for reference.
+	/// Maximum amount of generic paper stock that can be stored at once.
+	var/max_amount = 30
+	/// The list of physical papers put in the bin for reference.
 	var/list/papers = new/list()
+
+/obj/item/paper_bin/Initialize(mapload)
+	. = ..()
+	// A persisted bin replaces its original mapped counterpart instead of stacking with it.
+	if(persistent_objects_track_id)
+		for(var/obj/item/paper_bin/existing_bin in loc)
+			if(existing_bin != src && !existing_bin.persistent_objects_track_id && !QDELING(existing_bin))
+				qdel(existing_bin)
+				break
+	SSpersistence.objectsRegisterTrack(src)
+	update_icon()
 
 /obj/item/paper_bin/feedback_hints(mob/user, distance, is_adjacent)
 	. += ..()
@@ -83,6 +96,18 @@
 		to_chat(user, SPAN_NOTICE("You put [i] in [src]."))
 		papers.Add(i)
 		update_icon()
+	else if(istype(attacking_item, /obj/item/paper_bin_refill))
+		if(amount >= max_amount)
+			to_chat(user, SPAN_NOTICE("[src] is already fully stocked with generic paper."))
+			return
+
+		var/obj/item/paper_bin_refill/refill = attacking_item
+		var/refill_amount = min(refill.paper_amount, max_amount - amount)
+		amount += refill_amount
+		to_chat(user, SPAN_NOTICE("You refill [src] with [refill_amount] sheet[refill_amount == 1 ? "" : "s"] of paper."))
+		user.drop_from_inventory(refill, get_turf(src))
+		qdel(refill)
+		update_icon()
 
 /obj/item/paper_bin/proc/consume_generic_paper(amount_to_consume)
 	amount_to_consume = min(amount_to_consume, amount)
@@ -98,3 +123,27 @@
 		icon_state = "paper_bin0"
 	else
 		icon_state = "paper_bin1"
+
+/obj/item/paper_bin/persistent_objects_get_content()
+	var/list/content = ..()
+	content["amount"] = amount
+	return content
+
+/obj/item/paper_bin/persistent_objects_apply_content(content, x, y, z)
+	src.x = x
+	src.y = y
+	src.z = z
+	if(isnum(content["amount"]))
+		amount = clamp(content["amount"], 0, max_amount)
+	update_icon()
+
+/obj/item/paper_bin_refill
+	name = "paper ream"
+	desc = "A wrapped ream of blank paper used to refill paper bins."
+	icon = 'icons/obj/bureaucracy.dmi'
+	icon_state = "paper_stack"
+	w_class = WEIGHT_CLASS_NORMAL
+	drop_sound = 'sound/items/drop/cardboardbox.ogg'
+	pickup_sound = 'sound/items/pickup/cardboardbox.ogg'
+	/// How much generic paper stock this ream adds to a paper bin.
+	var/paper_amount = 30
