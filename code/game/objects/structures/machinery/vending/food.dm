@@ -7,6 +7,7 @@
 /obj/structure/machinery/vending/mredispenser
 	name = "MRE dispenser"
 	desc = "A vending machine filled with MRE's."
+	vend_id = "mre"
 	icon_state = "mrevend"
 	icon_deny = "mrevend-deny"
 	product_slogans = ";FOREIGN LEGION TESTED!, FOREIGN LEGION RECOMMENDED!, FOREIGN LEGION APPROVED!;YOU ARE NOT ALLOWED A JELLY DOUGHNUT!;YOU DON'T WANT TO DIE HUNGRY, SOLDIER!"
@@ -75,6 +76,7 @@
 /obj/structure/machinery/vending/quick_e_meals
 	name = "\improper quick-e-meals vendor"
 	desc = "Shelves of affordable microwave-ready meals by Orion and Getmore just waiting to be deployed into the battle against hunger!"
+	vend_id = "quick-meals"
 	icon_state = "quick_e"
 	icon_screen = "quick_e-screen"
 	icon_vend = "quick_e-vend"

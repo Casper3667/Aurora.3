@@ -4,6 +4,7 @@
 
 /obj/structure/machinery/vending/wardrobe
 	name = "Drobe - PARENT DO NOT USE"
+	vend_id = "wardrobe"
 	random_itemcount = FALSE
 	restock_items = TRUE
 

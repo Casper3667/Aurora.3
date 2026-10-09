@@ -232,6 +232,8 @@
 	var/extra_price = 50
 	/// If TRUE, skips the build_products() and build_inventory() processes in the Initialize(). Useful when you need these called later than Initialize().
 	var/build_inventory_later = FALSE
+	/// Original map location used to associate this machine with its persistent stock. Runtime-created vendors leave this null.
+	var/tmp/persistent_stock_id
 
 /obj/structure/machinery/vending/mechanics_hints(mob/user, distance, is_adjacent)
 	. += ..()
@@ -271,6 +273,8 @@
 	// Check if we were created off-station during mapload. Non-station vending machines are always free.
 	var/turf/T = get_turf(src)
 	if(mapload && T)
+		if(is_station_level(T.z))
+			persistent_stock_id = "[T.x],[T.y],[T.z],[type]"
 		if(!is_station_level(T.z))
 			if(!onstation_override)
 				onstation = FALSE
