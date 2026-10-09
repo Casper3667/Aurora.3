@@ -111,6 +111,10 @@
 	var/result = json_encode(list())
 	try
 		var/list/content = track.persistent_objects_get_content()
+		if(length(track.fingerprints))
+			if(!islist(content))
+				content = list()
+			content["fingerprints"] = track.fingerprints.Copy()
 		if(length(content))
 			result = json_encode(content)
 	catch(var/exception/e)
@@ -127,6 +131,10 @@
 /datum/controller/subsystem/persistence/proc/objectsApplyTrackContent(obj/track, json, x, y, z)
 	PRIVATE_PROC(TRUE)
 	try
-		track.persistent_objects_apply_content(json_decode(json), x, y, z)
+		var/list/content = json_decode(json)
+		track.persistent_objects_apply_content(content, x, y, z)
+		var/list/stored_fingerprints = content?["fingerprints"]
+		if(islist(stored_fingerprints) && length(stored_fingerprints))
+			track.fingerprints = stored_fingerprints.Copy()
 	catch(var/exception/e)
 		log_subsystem_persistence_error("Error during json deserialization or applying content for persistent object. Type: [track.type]", e)
