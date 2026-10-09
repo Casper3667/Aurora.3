@@ -9,6 +9,7 @@
 	icon_state = "engivend"
 	icon_vend = "engivend-vend"
 	vend_id = "admin"
+	persistent_stock = FALSE
 	req_access = list(/datum/access/janitor::id)
 	products = list(
 		/obj/item/vending_refill/vendors = 2,

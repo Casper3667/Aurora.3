@@ -18,6 +18,8 @@
 			continue
 
 		for(var/datum/data/vending_product/product in vendor.product_records)
+			if(product.category != CAT_NORMAL)
+				continue
 			var/stock_key = "[product.product_path]|[product.category]"
 			var/saved_amount = vendor_stock[stock_key]
 			if(isnum(saved_amount))
@@ -33,6 +35,8 @@
 
 		var/list/vendor_stock = list()
 		for(var/datum/data/vending_product/product in vendor.product_records)
+			if(product.category != CAT_NORMAL)
+				continue
 			var/stock_key = "[product.product_path]|[product.category]"
 			vendor_stock[stock_key] = product.amount
 		all_stock[vendor.persistent_stock_id] = vendor_stock

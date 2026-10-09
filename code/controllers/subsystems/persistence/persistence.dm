@@ -37,7 +37,7 @@ SUBSYSTEM_DEF(persistence)
 	var/char_cache = alist()
 	/// Dictionary<"[type](+[attribute])", container> cache of persistent generics.
 	var/generic_cache = alist()
-	/// Vending machines present on the Horizon when the round's map finished loading.
+	/// Persistent vending machines present on the Horizon when the round's map finished loading.
 	var/list/vending_stock_register = list()
 
 /**
