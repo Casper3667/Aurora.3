@@ -231,7 +231,7 @@
 			if(default == initial(fingerprint_hash) && ishuman(user))
 				var/mob/living/carbon/human/H = user
 				if(H.dna)
-					default = md5(H.dna.uni_identity)
+					default = H.get_full_print()
 			var/newFingerprintHash = sanitize(params["fingerprinthash"])
 			if(!isnull(newFingerprintHash))
 				src.fingerprint_hash = newFingerprintHash

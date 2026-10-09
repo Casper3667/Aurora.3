@@ -235,7 +235,7 @@
 	if(dna)
 		id_card.blood_type = dna.b_type
 		id_card.dna_hash  = dna.unique_enzymes
-		id_card.fingerprint_hash = md5(dna.uni_identity)
+		id_card.fingerprint_hash = dna.get_fingerprint_hash()
 	id_card.update_name()
 
 /mob/living/carbon/human/set_id_info(var/obj/item/card/id/id_card)
@@ -274,7 +274,7 @@
 				mob_id = WEAKREF(H)
 				blood_type = H.dna.b_type
 				dna_hash = H.dna.unique_enzymes
-				fingerprint_hash = md5(H.dna.uni_identity)
+				fingerprint_hash = H.get_full_print()
 				citizenship = H.citizenship
 				age = H.age
 				to_chat(user, SPAN_NOTICE("Biometric imprinting successful!"))
@@ -339,7 +339,7 @@
 				mob_id = WEAKREF(target_human)
 				blood_type = target_human.dna.b_type
 				dna_hash = target_human.dna.unique_enzymes
-				fingerprint_hash = md5(target_human.dna.uni_identity)
+				fingerprint_hash = target_human.get_full_print()
 				citizenship = target_human.citizenship
 				age = target_human.age
 				src.add_fingerprint(target_human)

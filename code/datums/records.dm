@@ -160,7 +160,7 @@
 		real_rank = H.mind.assigned_role
 		rank = GetAssignment(H, TRUE)
 		age = H.age
-		fingerprint = md5(H.dna.uni_identity)
+		fingerprint = H.get_full_print()
 		sex = H.species.get_species_record_sex(H)
 		species = H.get_species(FALSE, TRUE)
 		citizenship = SSrecords.get_citizenship_record_name(H.citizenship)
@@ -274,4 +274,3 @@ GLOBAL_VAR_INIT(shuttle_uid, 0)
 /datum/record/shuttle_assignment/New(var/for_shuttle)
 	. = ..()
 	shuttle = for_shuttle
-

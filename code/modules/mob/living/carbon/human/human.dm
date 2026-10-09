@@ -1413,9 +1413,9 @@
 	return TRUE //we applied blood to the item
 
 /mob/living/carbon/human/proc/get_full_print()
-	if(!dna ||!dna.uni_identity)
+	if(!dna)
 		return
-	return md5(dna.uni_identity)
+	return dna.get_fingerprint_hash()
 
 /mob/living/carbon/human/clean_blood(var/clean_feet)
 	.=..()

@@ -402,6 +402,7 @@ INITIALIZE_IMMEDIATE(/mob/abstract/new_player)
 
 	new_character.name = real_name
 	new_character.dna.ready_dna(new_character)
+	new_character.dna.set_persistent_biometrics(new_character, client.ckey)
 	new_character.dna.b_type = client.prefs.b_type
 	new_character.sync_organ_dna()
 	new_character.fixblood() // now that dna is set

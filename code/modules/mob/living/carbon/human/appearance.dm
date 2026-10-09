@@ -175,6 +175,9 @@
 
 /mob/living/carbon/human/proc/update_dna()
 	check_dna()
+	// DNA-altering appearance changes, such as the cosmetic surgery auto-kit,
+	// intentionally replace the character's persistent forensic identity.
+	dna.biometrics_persistent = FALSE
 	dna.ready_dna(src)
 
 /mob/living/carbon/human/proc/change_limb(var/limb, var/company)

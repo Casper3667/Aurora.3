@@ -63,7 +63,10 @@ var/global/list/datum/dna/gene/dna_genes[0]
 	// DO NOT FUCK WITH THESE OR BYOND WILL EAT YOUR FACE
 	var/uni_identity="" // Encoded UI
 	var/struc_enzymes="" // Encoded SE
-	var/unique_enzymes="" // MD5 of player name
+	var/unique_enzymes="" // Forensic DNA hash
+	var/fingerprint_hash="" // Forensic fingerprint hash
+	/// Whether the forensic hashes were generated from a persistent player character identity.
+	var/biometrics_persistent = FALSE
 
 	// Internal dirtiness checks
 	var/dirtyUI=0
@@ -87,6 +90,8 @@ var/global/list/datum/dna/gene/dna_genes[0]
 /datum/dna/proc/Clone()
 	var/datum/dna/new_dna = new()
 	new_dna.unique_enzymes=unique_enzymes
+	new_dna.fingerprint_hash=fingerprint_hash
+	new_dna.biometrics_persistent=biometrics_persistent
 	new_dna.b_type=b_type
 	new_dna.real_name=real_name
 	new_dna.species=species
@@ -98,6 +103,40 @@ var/global/list/datum/dna/gene/dna_genes[0]
 	new_dna.UpdateUI()
 	new_dna.UpdateSE()
 	return new_dna
+
+/**
+ * Generates stable forensic hashes for a saved player character.
+ *
+ * SQL-backed characters use their ckey and character ID. Characters loaded
+ * without an SQL ID fall back to their ckey and saved character name.
+ */
+/datum/dna/proc/set_persistent_biometrics(var/mob/living/carbon/human/character, var/player_key)
+	if(!istype(character))
+		return FALSE
+
+	var/canonical_ckey = ckey(player_key)
+	if(!canonical_ckey)
+		return FALSE
+
+	var/identity
+	if(character.character_id > 0)
+		identity = "character-id|[canonical_ckey]|[character.character_id]"
+	else if(character.real_name)
+		identity = "character-name|[canonical_ckey]|[lowertext(character.real_name)]"
+	else
+		return FALSE
+
+	var/hash_source = "aurora-biometric-v1|[identity]"
+	unique_enzymes = copytext(rustg_hash_string(RUSTG_HASH_SHA256, "dna|[hash_source]"), 1, 33)
+	fingerprint_hash = copytext(rustg_hash_string(RUSTG_HASH_SHA256, "fingerprint|[hash_source]"), 1, 33)
+	biometrics_persistent = TRUE
+	GLOB.reg_dna[unique_enzymes] = character.real_name
+	return TRUE
+
+/datum/dna/proc/get_fingerprint_hash()
+	if(length(fingerprint_hash) != 32 && uni_identity)
+		fingerprint_hash = md5(uni_identity)
+	return fingerprint_hash
 ///////////////////////////////////////
 // UNIQUE IDENTITY
 ///////////////////////////////////////
@@ -356,6 +395,9 @@ var/global/list/datum/dna/gene/dna_genes[0]
 		if(length(struc_enzymes)!= 3*DNA_SE_LENGTH)
 			struc_enzymes = "43359156756131E13763334D1C369012032164D4FE4CD61544B6C03F251B6C60A42821D26BA3B0FD6"
 
+	if(length(fingerprint_hash) != 32)
+		fingerprint_hash = md5(uni_identity)
+
 // BACK-COMPAT!
 //  Initial DNA setup.  I'm kind of wondering why the hell this doesn't just call the above.
 /datum/dna/proc/ready_dna(mob/living/carbon/human/character)
@@ -363,5 +405,7 @@ var/global/list/datum/dna/gene/dna_genes[0]
 
 	ResetSE()
 
-	unique_enzymes = md5(character.real_name)
+	if(!biometrics_persistent)
+		unique_enzymes = md5(character.real_name)
+		fingerprint_hash = md5(uni_identity)
 	GLOB.reg_dna[unique_enzymes] = character.real_name
