@@ -925,6 +925,7 @@ GLOBAL_LIST_INIT(slot_flags_enumeration, list(
 		blood_color = null
 
 	update_icon()
+	notify_noir_blood_changed(src)
 
 /obj/item/reveal_blood()
 	if(was_bloodied && !fluorescent)
@@ -932,6 +933,7 @@ GLOBAL_LIST_INIT(slot_flags_enumeration, list(
 		blood_color = COLOR_LUMINOL
 		blood_overlay.color = COLOR_LUMINOL
 		update_icon()
+		notify_noir_blood_changed(src)
 
 /obj/item/add_blood(mob/living/carbon/human/M as mob)
 	if (!..())
@@ -948,6 +950,7 @@ GLOBAL_LIST_INIT(slot_flags_enumeration, list(
 	if(!blood_DNA.len)
 		blood_overlay.color = blood_color
 		AddOverlays(blood_overlay, TRUE)	// Priority overlay so we don't lose it somehow.
+		notify_noir_blood_changed(src)
 
 	//if this blood isn't already in the list, add it
 	if(istype(M))

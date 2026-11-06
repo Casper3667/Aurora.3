@@ -250,6 +250,7 @@
 		death()
 
 /mob/living/simple_animal/Destroy()
+	notify_noir_blood_changed(src)
 	CutOverlays(blood_overlay)
 	QDEL_NULL(blood_overlay)
 	lostMovementTarget()
@@ -476,6 +477,8 @@
 		if(blood_overlay)
 			CutOverlays(blood_overlay)
 		if(blood_state == BLOOD_NONE)
+			blood_overlay = null
+			notify_noir_blood_changed(src)
 			return
 		var/blood_overlay_name = get_blood_overlay_name()
 		var/image/I = image(blood_overlay_icon, src, "[blood_overlay_name]-[blood_state]")
@@ -483,6 +486,7 @@
 		I.blend_mode = BLEND_INSET_OVERLAY
 		blood_overlay = I
 		AddOverlays(blood_overlay)
+		notify_noir_blood_changed(src)
 
 /mob/living/simple_animal/proc/get_blood_overlay_name()
 	return "blood_overlay"

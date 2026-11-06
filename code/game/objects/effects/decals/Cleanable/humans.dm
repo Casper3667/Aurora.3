@@ -69,6 +69,11 @@
 	)
 
 	AddElement(/datum/element/connect_loc, loc_connections)
+	notify_noir_blood_changed(src)
+
+/obj/effect/decal/cleanable/blood/Destroy()
+	notify_noir_blood_changed(src)
+	return ..()
 
 /obj/effect/decal/cleanable/blood/get_examine_text(mob/user, distance, is_adjacent, infix, suffix)
 	if(dries && world.time > (bleed_time + drytime))
@@ -85,6 +90,7 @@
 	if(basecolor == "rainbow")
 		basecolor = get_random_colour(1)
 	color = basecolor
+	notify_noir_blood_changed(src)
 
 /obj/effect/decal/cleanable/blood/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
 	SIGNAL_HANDLER

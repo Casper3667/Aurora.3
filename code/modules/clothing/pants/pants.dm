@@ -33,6 +33,7 @@ ABSTRACT_TYPE(/obj/item/clothing/pants)
 		var/image/bloodsies = image(icon = H.species.blood_mask, icon_state = "pantsblood")
 		bloodsies.color = blood_color
 		I.AddOverlays(bloodsies)
+		H.add_noir_blood_overlay(slot, bloodsies)
 	return I
 
 /obj/item/clothing/pants/update_clothing_icon()

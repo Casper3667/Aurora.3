@@ -94,6 +94,8 @@
 
 	var/mob/remoteview_target = null
 	var/hand_blood_color
+	/// Blood appearances currently rendered as part of worn or body overlays, keyed by inventory slot.
+	var/list/noir_blood_overlays = list()
 
 	var/list/flavor_texts = list()
 	var/list/gunshot_residue

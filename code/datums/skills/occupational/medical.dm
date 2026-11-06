@@ -129,6 +129,7 @@
 			+ " - Automatically record time, place and gathering person on evidence bags and photos.",
 		SKILL_LEVEL_PROFESSIONAL = "You have extensive training and experience with forensics.<br>" \
 			+ "You can do the following: <br>" \
-			+ " - Automatically record time, place and gathering person on evidence bags and photos.",
+			+ " - Automatically record time, place and gathering person on evidence bags and photos.<br>" \
+			+ " - Focus your attention through Noir Vision, draining color from your surroundings while preserving the color of blood.",
 	)
 	required = TRUE

@@ -573,9 +573,22 @@ There are several things that need to be remembered:
 /* --------------------------------------- */
 //vvvvvv UPDATE_INV PROCS vvvvvv
 
+/mob/living/carbon/human/proc/clear_noir_blood_overlay(slot)
+	if(noir_blood_overlays[slot])
+		noir_blood_overlays -= slot
+		notify_noir_blood_changed(src)
+
+/mob/living/carbon/human/proc/add_noir_blood_overlay(slot, image/blood_overlay)
+	if(!noir_blood_overlays[slot])
+		noir_blood_overlays[slot] = list()
+	var/list/slot_overlays = noir_blood_overlays[slot]
+	slot_overlays += blood_overlay
+	notify_noir_blood_changed(src)
+
 /mob/living/carbon/human/update_inv_w_uniform(var/update_icons=1)
 	if (QDELETED(src))
 		return
+	clear_noir_blood_overlay(slot_w_uniform_str)
 
 	if(check_draw_underclothing())
 		var/mob_icon
@@ -665,6 +678,7 @@ There are several things that need to be remembered:
 /mob/living/carbon/human/update_inv_gloves(var/update_icons=1)
 	if (QDELETED(src))
 		return
+	clear_noir_blood_overlay(slot_gloves_str)
 
 
 	if(check_draw_gloves())
@@ -693,6 +707,7 @@ There are several things that need to be remembered:
 		bloodsies.color = hand_blood_color
 		bloodsies.appearance_flags = RESET_ALPHA
 		overlays_raw[GLOVES_LAYER] = bloodsies
+		add_noir_blood_overlay(slot_gloves_str, bloodsies)
 	else
 		overlays_raw[GLOVES_LAYER] = null
 
@@ -825,6 +840,7 @@ There are several things that need to be remembered:
 /mob/living/carbon/human/update_inv_shoes(var/update_icons=1)
 	if (QDELETED(src))
 		return
+	clear_noir_blood_overlay(slot_shoes_str)
 
 	if(check_draw_shoes())
 		var/mob_icon = INV_SHOES_DEF_ICON
@@ -868,6 +884,7 @@ There are several things that need to be remembered:
 					var/image/bloodsies = image(species.blood_mask, "shoeblood_[E.limb_name]")
 					bloodsies.color = footprint_color
 					bloodsies.appearance_flags = RESET_ALPHA
+					add_noir_blood_overlay(slot_shoes_str, bloodsies)
 					if(!result_layer)
 						result_layer = bloodsies
 					else
@@ -907,6 +924,7 @@ There are several things that need to be remembered:
 /mob/living/carbon/human/update_inv_head(update_icons = TRUE, recurse = TRUE)
 	if (QDELETED(src))
 		return
+	clear_noir_blood_overlay(slot_head_str)
 
 	overlays_raw[HEAD_LAYER] = null
 	overlays_raw[HEAD_LAYER_ALT] = null
@@ -991,6 +1009,7 @@ There are several things that need to be remembered:
 /mob/living/carbon/human/update_inv_wear_suit(var/update_icons=1)
 	if (QDELETED(src))
 		return
+	clear_noir_blood_overlay(slot_wear_suit_str)
 
 	if(wear_suit)
 		var/mob_icon = INV_SUIT_DEF_ICON
@@ -1036,6 +1055,7 @@ There are several things that need to be remembered:
 /mob/living/carbon/human/update_inv_wear_mask(update_icons = TRUE, recurse = TRUE)
 	if (QDELETED(src))
 		return
+	clear_noir_blood_overlay(slot_wear_mask_str)
 
 	overlays_raw[FACEMASK_LAYER] = null
 	if(check_draw_mask())
@@ -1306,6 +1326,7 @@ There are several things that need to be remembered:
 /mob/living/carbon/human/update_inv_pants(var/update_icons=1)
 	if (QDELETED(src))
 		return
+	clear_noir_blood_overlay(slot_pants_str)
 
 	overlays_raw[UNDER_UNIFORM_LAYER_PA] = null
 	overlays_raw[ABOVE_UNIFORM_LAYER_PA] = null
@@ -1502,6 +1523,7 @@ There are several things that need to be remembered:
 
 /mob/living/carbon/human/proc/update_surgery(var/update_icons=1)
 	overlays_raw[SURGERY_LAYER] = null
+	clear_noir_blood_overlay("surgery")
 
 	var/image/total = new
 	for(var/obj/item/organ/external/E in organs)
@@ -1530,6 +1552,7 @@ There are several things that need to be remembered:
 			blood.color = E.owner.get_blood_color()
 			blood.appearance_flags = RESET_ALPHA
 			LAZYADD(overlays_to_add, blood)
+			add_noir_blood_overlay("surgery", blood)
 		overlay_state = "[base_state]-bones"
 		if(overlay_state in surgery_states)
 			LAZYADD(overlays_to_add, image(icon = surgery_icon, icon_state = overlay_state, layer = -SURGERY_LAYER))

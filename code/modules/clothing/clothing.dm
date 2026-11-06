@@ -549,6 +549,7 @@
 		var/image/bloodsies = image(H.species.blood_mask, "bloodyhands")
 		bloodsies.color = blood_color
 		I.AddOverlays(bloodsies)
+		H.add_noir_blood_overlay(slot, bloodsies)
 	return I
 
 /obj/item/clothing/gloves/emp_act(severity)
@@ -792,6 +793,7 @@
 		bloodsies.color = blood_color
 		bloodsies.appearance_flags = RESET_ALPHA
 		I.AddOverlays(bloodsies)
+		H.add_noir_blood_overlay(slot, bloodsies)
 	return I
 
 /obj/item/clothing/head/build_shifted_additional_parts(mob/living/carbon/human/H, mob_icon, slot, var/icon/canvas, var/list/facing_list, use_dir)
@@ -869,6 +871,7 @@
 		bloodsies.color = blood_color
 		bloodsies.appearance_flags = RESET_ALPHA
 		I.AddOverlays(bloodsies)
+		H.add_noir_blood_overlay(slot, bloodsies)
 	return I
 
 /obj/item/clothing/mask/proc/filter_air(datum/gas_mixture/air)
@@ -1041,6 +1044,7 @@
 				bloodsies.color = blood_color
 				bloodsies.appearance_flags = RESET_ALPHA
 				I.AddOverlays(bloodsies)
+				H.add_noir_blood_overlay(slot, bloodsies)
 	return I
 
 /obj/item/clothing/shoes/proc/handle_movement(var/turf/walking, var/running)
@@ -1129,6 +1133,7 @@
 		var/image/bloodsies = image(icon = H.species.blood_mask, icon_state = "[blood_overlay_type]blood")
 		bloodsies.color = blood_color
 		I.AddOverlays(bloodsies)
+		H.add_noir_blood_overlay(slot, bloodsies)
 	return I
 
 /obj/item/clothing/suit/update_clothing_icon()
@@ -1246,6 +1251,7 @@
 		var/image/bloodsies = image(icon = H.species.blood_mask, icon_state = "uniformblood")
 		bloodsies.color = blood_color
 		I.AddOverlays(bloodsies)
+		H.add_noir_blood_overlay(slot, bloodsies)
 	return I
 
 /obj/item/clothing/under/proc/update_rolldown_status()
