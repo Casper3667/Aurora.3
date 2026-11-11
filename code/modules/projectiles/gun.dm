@@ -120,6 +120,10 @@ ABSTRACT_TYPE(/obj/item/gun)
 	/// The higher this number, the more accurate this weapon is when fired from the off-hand.
 	var/offhand_accuracy = 0
 	var/scoped_accuracy = null
+	/// Accuracy before activating the scope, restored when zooming out.
+	var/unscoped_accuracy = null
+	/// Recoil before activating the scope, restored when zooming out.
+	var/unscoped_recoil = null
 	/// Allows for different accuracies for each shot in a burst. Applied on top of accuracy.
 	var/list/burst_accuracy = list(0)
 	var/list/dispersion = list(0)
@@ -159,6 +163,8 @@ ABSTRACT_TYPE(/obj/item/gun)
 	var/recoil_wielded
 	var/accuracy_wielded
 	var/wielded = 0
+	/// Optional controller whose accuracy signals should be used when this gun is fired by a vehicle or other proxy mob.
+	var/tmp/mob/living/accuracy_user_override
 	var/needspin = TRUE
 	/// Can this weapon be dual-wielded?
 	var/is_wieldable = FALSE
@@ -450,7 +456,8 @@ ABSTRACT_TYPE(/obj/item/gun)
 
 	/// The amount of extra degrees of firing arc the gun will have from the effects of a signal raised on the user.
 	var/dispersion_increase = 0
-	SEND_SIGNAL(user, COMSIG_BEFORE_GUN_FIRE, &accuracy_decrease, &dispersion_increase)
+	var/mob/living/accuracy_user = accuracy_user_override ? accuracy_user_override : user
+	SEND_SIGNAL(accuracy_user, COMSIG_BEFORE_GUN_FIRE, &accuracy_decrease, &dispersion_increase)
 
 	//actually attempt to shoot
 	var/turf/targloc = get_turf(target) //cache this in case target gets deleted during shooting, e.g. if it was a securitron that got destroyed.
@@ -748,6 +755,10 @@ ABSTRACT_TYPE(/obj/item/gun)
 	var/view_size = round(world.view + zoom_amount)
 	var/scoped_accuracy_mod = zoom_offset
 
+	if(!zoom)
+		unscoped_accuracy = accuracy
+		unscoped_recoil = recoil
+
 	zoom(user, zoom_offset, view_size)
 	if(zoom)
 		accuracy = scoped_accuracy + scoped_accuracy_mod
@@ -758,6 +769,12 @@ ABSTRACT_TYPE(/obj/item/gun)
 /obj/item/gun/zoom()
 	..()
 	if(!zoom)
+		if(!isnull(unscoped_accuracy))
+			accuracy = unscoped_accuracy
+			unscoped_accuracy = null
+		if(!isnull(unscoped_recoil))
+			recoil = unscoped_recoil
+			unscoped_recoil = null
 		update_firing_delays()
 	update_gun_actions()
 
@@ -897,7 +914,13 @@ ABSTRACT_TYPE(/obj/item/gun)
 			accuracy = accuracy_wielded
 	else
 		if(!isnull(fire_delay_wielded))
-			fire_delay = initial(fire_delay)
+			var/unwielded_fire_delay = initial(fire_delay)
+			if(length(firemodes))
+				var/datum/firemode/current_mode = firemodes[sel_mode]
+				var/mode_fire_delay = current_mode.settings["fire_delay"]
+				if(!isnull(mode_fire_delay))
+					unwielded_fire_delay = mode_fire_delay
+			fire_delay = unwielded_fire_delay
 		if(!isnull(recoil_wielded))
 			recoil = initial(recoil)
 		if(!isnull(accuracy_wielded))
