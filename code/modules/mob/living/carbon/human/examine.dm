@@ -69,16 +69,16 @@
 
 	//uniform
 	if(w_uniform && !skipjumpsuit)
+		var/obj/item/clothing/under/examined_uniform = w_uniform
 		//Ties
 		var/tie_msg
 		var/tie_msg_warn
-		if(istype(w_uniform,/obj/item/clothing/under))
-			var/obj/item/clothing/under/U = w_uniform
-			if(LAZYLEN(U.accessories))
+		if(istype(examined_uniform))
+			if(LAZYLEN(examined_uniform.accessories))
 				tie_msg += ". Attached to it is"
 				tie_msg_warn += "! Attached to it is"
 				var/list/accessory_descs = list()
-				for(var/accessory in U.accessories)
+				for(var/accessory in examined_uniform.accessories)
 					if(istype(accessory, /obj/item/clothing/accessory/holster)) //so you can't see what kind of gun a holster is holding from afar
 						accessory_descs += "\a [accessory]"
 					else
@@ -91,6 +91,9 @@
 			msg += SPAN_WARNING("[get_pronoun("He")] [get_pronoun("is")] wearing [icon2html(w_uniform, user)] [w_uniform.gender==PLURAL?"some":"a"] [fluid_color_type_map(w_uniform.blood_color)]-stained <a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(w_uniform)]'>[w_uniform.name]</a>[tie_msg_warn].\n")
 		else
 			msg += "[get_pronoun("He")] [get_pronoun("is")] wearing [icon2html(w_uniform, user)] <a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(w_uniform)]'>\a [w_uniform]</a>[tie_msg].\n"
+		if(examined_uniform?.attached_radio)
+			var/obj/item/radio/headset/wrist/clip/radio = examined_uniform.attached_radio
+			msg += "[get_pronoun("He")] [get_pronoun("has")] [icon2html(radio, user)] <a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(radio)]'>\a [radio]</a> clipped to [get_pronoun("his")] [w_uniform.name].\n"
 
 	//head
 	if(head)
@@ -101,15 +104,15 @@
 
 	//suit/armor
 	if(wear_suit)
+		var/obj/item/clothing/suit/examined_outerwear = wear_suit
 		var/tie_msg
 		var/tie_msg_warn
-		if(istype(wear_suit,/obj/item/clothing/suit))
-			var/obj/item/clothing/suit/U = wear_suit
-			if(LAZYLEN(U.accessories))
+		if(istype(examined_outerwear))
+			if(LAZYLEN(examined_outerwear.accessories))
 				tie_msg += ". Attached to it is"
 				tie_msg_warn += "! Attached to it is"
 				var/list/accessory_descs = list()
-				for(var/accessory in U.accessories)
+				for(var/accessory in examined_outerwear.accessories)
 					accessory_descs += "<a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(accessory)]'>\a [accessory]</a>"
 
 				tie_msg += " [lowertext(english_list(accessory_descs))]"
@@ -119,6 +122,9 @@
 			msg += SPAN_WARNING("[get_pronoun("He")] [get_pronoun("is")] wearing [icon2html(wear_suit, user)] [wear_suit.gender==PLURAL?"some":"a"] [fluid_color_type_map(wear_suit.blood_color)]-stained <a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(wear_suit)]'>[wear_suit.name]</a>[tie_msg_warn].\n")
 		else
 			msg += "[get_pronoun("He")] [get_pronoun("is")] wearing [icon2html(wear_suit, user)] <a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(wear_suit)]'>\a [wear_suit]</a>[tie_msg].\n"
+		if(examined_outerwear?.attached_radio)
+			var/obj/item/radio/headset/wrist/clip/radio = examined_outerwear.attached_radio
+			msg += "[get_pronoun("He")] [get_pronoun("has")] [icon2html(radio, user)] <a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(radio)]'>\a [radio]</a> clipped to [get_pronoun("his")] [wear_suit.name].\n"
 
 		//suit/armor storage
 		if(s_store && !skipsuitstorage)

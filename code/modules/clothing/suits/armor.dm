@@ -46,6 +46,8 @@
 		..()
 
 /obj/item/clothing/suit/armor/attackby(obj/item/attacking_item, mob/user)
+	if(istype(attacking_item, /obj/item/radio/headset/wrist/clip))
+		return ..()
 	..()
 	if(istype(attacking_item, /obj/item/clothing/accessory/armor_plate))
 		if(attacking_item in accessories) //We already attached this. Don't try to put it in our pockets
@@ -200,6 +202,8 @@
 	return ..()
 
 /obj/item/clothing/suit/armor/tactical/attackby(obj/item/attacking_item, mob/user)
+	if(istype(attacking_item, /obj/item/radio/headset/wrist/clip))
+		return ..()
 	..()
 	holster.attackby(attacking_item, user)
 
