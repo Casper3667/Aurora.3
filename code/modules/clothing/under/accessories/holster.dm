@@ -122,7 +122,10 @@
 /obj/item/clothing/accessory/holster/get_examine_text(mob/user, distance, is_adjacent, infix, suffix)
 	. = ..()
 	if (holstered)
-		. += "A [holstered] is holstered here."
+		if(distance <= 2)
+			. += "A [holstered] is holstered here."
+		else
+			. += "Something is holstered here."
 	else
 		. += "It is empty."
 
