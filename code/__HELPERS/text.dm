@@ -359,7 +359,7 @@
 /proc/trim(text)
 	return trim_left(trim_right(text))
 
-/// Returns a safe, canonical Aurora forum gallery image URL, or null if the URL is not allowed.
+/// Returns a safe character portrait URL under the configured image prefix, or null if it is not allowed.
 /proc/normalize_character_portrait_url(url)
 	if(!istext(url))
 		return
@@ -368,11 +368,25 @@
 	if(!url || length(url) > 512)
 		return
 
-	// Gallery images are served from the forum's dated upload directories. Requiring the
-	// complete HTTPS origin prevents lookalike hosts, while the strict path prevents injection.
-	var/static/regex/gallery_image_url = regex(@"^https://forums\.aurorastation\.org/uploads/monthly_[0-9]{4}_[0-9]{2}/[a-z0-9%._~()+,\-]+\.(png|jpe?g|gif|webp)$", "i")
-	if(gallery_image_url.Find(url) != 1)
+	var/allowed_prefix = trim(GLOB.config.character_portrait_image_url_prefix)
+	if(!allowed_prefix || findtext(lowertext(allowed_prefix), "https://") != 1)
 		return
+	if(allowed_prefix[length(allowed_prefix)] != "/")
+		allowed_prefix += "/"
+	if(findtext(lowertext(url), lowertext(allowed_prefix)) != 1)
+		return
+
+	var/image_path = copytext(url, length(allowed_prefix) + 1)
+	var/lower_image_path = lowertext(image_path)
+	var/static/regex/image_path_format = regex(@"^[a-z0-9%._~()+,\-/]+\.(png|jpe?g|gif|webp)$", "i")
+	if(!image_path_format.Find(image_path))
+		return
+	// Prevent encoded or literal traversal from escaping the configured directory.
+	if(findtext(lower_image_path, "%2e") || findtext(lower_image_path, "%2f") || findtext(lower_image_path, "%5c"))
+		return
+	for(var/path_segment in splittext(image_path, "/"))
+		if(path_segment == "." || path_segment == "..")
+			return
 
 	return url
 

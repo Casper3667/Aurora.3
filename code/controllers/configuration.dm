@@ -256,6 +256,8 @@ GLOBAL_LIST_EMPTY(gamemode_cache)
 	var/wikiurl
 	var/forumurl
 	var/forum_passphrase
+	/// HTTPS URL prefix from which character portrait images may be loaded. Must end in a slash.
+	var/character_portrait_image_url_prefix
 	var/rulesurl
 	var/githuburl
 	var/mainsiteurl
@@ -650,6 +652,13 @@ GENERAL_PROTECT_DATUM(/datum/configuration)
 
 				if ("forumurl")
 					GLOB.config.forumurl = value
+
+				if ("character_portrait_image_url_prefix")
+					value = trim(value)
+					if(findtext(lowertext(value), "https://") != 1)
+						log_config("CHARACTER_PORTRAIT_IMAGE_URL_PREFIX must be an HTTPS URL; character portraits will be disabled.")
+					else
+						character_portrait_image_url_prefix = (value[length(value)] != "/" ? (value + "/") : value)
 
 				if ("rulesurl")
 					GLOB.config.rulesurl = value

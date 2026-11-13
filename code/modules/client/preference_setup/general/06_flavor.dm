@@ -148,7 +148,7 @@
 		"label" = "Portrait",
 		"value" = pref.flavor_texts["portrait"] ? TextPreview(pref.flavor_texts["portrait"], 60) : "None",
 		"action" = "portrait_url",
-		"note" = "Use Copy image address on an image uploaded to the Aurora forum gallery."
+		"note" = GLOB.config.character_portrait_image_url_prefix ? "Use Copy image address. Allowed source: [GLOB.config.character_portrait_image_url_prefix]" : "Character portraits are disabled on this server."
 	))
 	var/list/robot_fields = list(list(
 		"label" = "Default",
@@ -217,7 +217,10 @@
 		return TOPIC_REFRESH
 
 	else if(href_list["portrait_url"])
-		var/new_portrait_url = tgui_input_text(user, "Paste the image address copied from an image in the Aurora forum gallery. Gallery page links will not work; right-click the full image and use Copy image address. Leave this blank to remove the portrait.", "Character Portrait", pref.flavor_texts["portrait"], max_length = 512, encode = FALSE)
+		if(!GLOB.config.character_portrait_image_url_prefix)
+			tgui_alert(user, "Character portraits are not configured on this server.", "Character Portraits Disabled", list("OK"))
+			return TOPIC_NOACTION
+		var/new_portrait_url = tgui_input_text(user, "Paste a direct image address from [GLOB.config.character_portrait_image_url_prefix]. Page links will not work; right-click the full image and use Copy image address. Leave this blank to remove the portrait.", "Character Portrait", pref.flavor_texts["portrait"], max_length = 512, encode = FALSE)
 		if(!CanUseTopic(user))
 			return TOPIC_NOACTION
 		if(isnull(new_portrait_url))
@@ -228,7 +231,7 @@
 			return TOPIC_REFRESH
 		new_portrait_url = normalize_character_portrait_url(new_portrait_url)
 		if(!new_portrait_url)
-			tgui_alert(user, "That is not a supported Aurora forum gallery image address. The address must use HTTPS on forums.aurorastation.org and point directly to a PNG, JPEG, GIF, or WebP image in the forum's uploads directory.", "Invalid Portrait URL", list("OK"))
+			tgui_alert(user, "That is not a supported character portrait address. It must be a direct HTTPS PNG, JPEG, GIF, or WebP image under [GLOB.config.character_portrait_image_url_prefix].", "Invalid Portrait URL", list("OK"))
 			return TOPIC_NOACTION
 		pref.flavor_texts["portrait"] = new_portrait_url
 		return TOPIC_REFRESH
