@@ -14,6 +14,8 @@
 	light_system = MOVABLE_LIGHT
 
 	var/slot = ACCESSORY_SLOT_GENERIC
+	/// The heading this item uses when attached accessories are grouped in a human's examine text.
+	var/examine_group = "Accessories"
 
 	/// Determines how accessories will layer over eachother, with lower being beneath everything, and upper above
 	var/accessory_layer = ACCESSORY_LAYER_MIDDLE
@@ -25,6 +27,9 @@
 	var/flippable = 0 //whether it has an attack_self proc which causes the icon to flip horizontally
 	var/flipped = 0
 	var/protects_against_weather = FALSE
+
+/obj/item/clothing/accessory/proc/get_examine_group()
+	return examine_group
 
 /obj/item/clothing/accessory/Destroy()
 	on_removed()
@@ -172,6 +177,7 @@
 
 /obj/item/clothing/accessory/tie
 	name = "red tie"
+	examine_group = "Clothing"
 	icon = 'icons/obj/item/clothing/accessory/ties.dmi'
 	icon_state = "redtie"
 	item_state = "redtie"
@@ -346,6 +352,7 @@
 
 /obj/item/clothing/accessory/suspenders
 	name = "suspenders"
+	examine_group = "Clothing"
 	desc = "They suspend the illusion of the mime's play."
 	icon = 'icons/obj/item/clothing/accessory/suspenders.dmi'
 	icon_state = "suspenders"
@@ -356,6 +363,7 @@
 
 /obj/item/clothing/accessory/scarf
 	name = "scarf"
+	examine_group = "Clothing"
 	desc = "A simple scarf, to protect your neck from the cold of space."
 	icon = 'icons/obj/item/clothing/accessory/scarves.dmi'
 	icon_state = "scarf0"
@@ -404,6 +412,7 @@
 
 /obj/item/clothing/accessory/shawl
 	name = "cozy shawl"
+	examine_group = "Clothing"
 	desc = "A favored accessory amongst grandmothers and cottagecore enthusiasts."
 	icon = 'icons/obj/item/clothing/accessory/shawl.dmi'
 	icon_state = "shawl"
@@ -412,6 +421,7 @@
 
 /obj/item/clothing/accessory/chaps
 	name = "brown chaps"
+	examine_group = "Clothing"
 	desc = "A pair of loose, brown leather chaps."
 	icon = 'icons/obj/item/clothing/accessory/chaps.dmi'
 	icon_state = "chaps"
@@ -431,6 +441,7 @@
 
 /obj/item/clothing/accessory/poncho
 	name = "poncho"
+	examine_group = "Clothing"
 	desc = "A simple, comfortable poncho."
 	icon = 'icons/obj/item/clothing/accessory/poncho/poncho.dmi'
 	icon_state = "classicponcho"
@@ -546,6 +557,7 @@
  */
 
 /obj/item/clothing/accessory/sash
+	examine_group = "Clothing"
 	name = "yellow sash"
 	desc = "A yellow sash, designed to be worn over one shoulder and come down to the opposing hip."
 	desc_extended = "Sashes such as this one are a common sight throughout the Empire of Dominia, though they are hardly as fashionable as the typical cape."
@@ -842,6 +854,7 @@
 	item_state = "neckbrace"
 
 /obj/item/clothing/accessory/tc_pin
+	examine_group = "Insignia"
 	name = "Republic of Biesel pin"
 	desc = "A small Republic of Biesel flag pin."
 	icon = 'icons/obj/item/clothing/accessory/pins.dmi'
@@ -853,6 +866,7 @@
 	pickup_sound = 'sound/items/pickup/ring.ogg'
 
 /obj/item/clothing/accessory/sol_pin
+	examine_group = "Insignia"
 	name = "Sol Alliance pin"
 	desc = "A small pin of the Sol Alliance, shaped like a golden sun."
 	icon = 'icons/obj/item/clothing/accessory/pins.dmi'
@@ -948,6 +962,7 @@
 		item_state = "[initial(item_state)][tucked ? "_tucked" : ""]"
 
 /obj/item/clothing/accessory/namepin
+	examine_group = "Insignia"
 	name = "pin tag"
 	desc = "A small strip of metal to label its wearer."
 	icon = 'icons/obj/item/clothing/accessory/pins.dmi'
@@ -958,6 +973,7 @@
 	w_class = WEIGHT_CLASS_TINY
 
 /obj/item/clothing/accessory/ribbon
+	examine_group = "Insignia"
 	name = "ribbon"
 	desc = "A small ribbon to commemorate or support a cause."
 	icon = 'icons/obj/item/clothing/accessory/ribbon.dmi'
@@ -968,6 +984,7 @@
 	w_class = WEIGHT_CLASS_TINY
 
 /obj/item/clothing/accessory/sleevepatch
+	examine_group = "Insignia"
 	name = "sleeve patch"
 	desc = "An embroidered patch which can be attached to the shoulder sleeve of clothing."
 	icon = 'icons/obj/item/clothing/accessory/patches.dmi'
@@ -1047,6 +1064,7 @@
 	slot = ACCESSORY_SLOT_PANTS
 
 /obj/item/clothing/accessory/blood_patch
+	examine_group = "Insignia"
 	name = "O- blood patch"
 	desc = "An embroidered patch indicating the wearer's blood type as O NEGATIVE."
 	icon = 'icons/obj/item/clothing/accessory/blood_patch.dmi'
@@ -1128,6 +1146,7 @@
 	item_state = "orion_tie"
 
 /obj/item/clothing/accessory/pin/corporate
+	examine_group = "Insignia"
 	name = "corporate badge"
 	desc = "A shiny button which reads, <i>'NanoTrasen - The leader in all things Phoron!'</i>"
 	icon = 'icons/obj/item/clothing/department_uniforms/service.dmi'
@@ -1208,6 +1227,7 @@
 /********** Aprons Start **********/
 // Apron
 /obj/item/clothing/accessory/apron
+	examine_group = "Clothing"
 	name = "apron"
 	desc = "An apron."
 	icon = 'icons/obj/item/clothing/accessory/aprons.dmi'
@@ -1298,6 +1318,7 @@
 /********** Overalls Start **********/
 // Overalls
 /obj/item/clothing/accessory/overalls
+	examine_group = "Clothing"
 	name = "overalls"
 	desc = "A set of denim overalls."
 	icon = 'icons/obj/item/clothing/accessory/overalls.dmi'
@@ -1377,6 +1398,7 @@
 
 // Pronoun pins
 /obj/item/clothing/accessory/pronoun
+	examine_group = "Insignia"
 	name = "any/all pronouns pin"
 	desc = "A pin denoting the wearer's pronouns: any/all."
 	icon = 'icons/obj/item/clothing/accessory/pronoun_pin.dmi'

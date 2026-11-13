@@ -44,9 +44,25 @@
 	line += item.blood_color ? "!" : "."
 	return item.blood_color ? SPAN_WARNING(line) : line
 
-/mob/living/carbon/human/proc/get_examine_attachment_line(mob/user, obj/item/item)
-	var/item_text = "<a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(item)]'>\a [item]</a>"
-	return "&nbsp;&nbsp;- <b>Attached:</b> [icon2html(item, user)] [item_text]."
+/mob/living/carbon/human/proc/get_examine_attachment_lines(mob/user, obj/item/clothing/clothing)
+	var/list/grouped_items = list()
+	for(var/obj/item/clothing/accessory/accessory in clothing.accessories)
+		var/group = accessory.get_examine_group()
+		if(!grouped_items[group])
+			grouped_items[group] = list()
+		var/list/group_items = grouped_items[group]
+		group_items += accessory
+
+	if(clothing.attached_radio)
+		grouped_items["Radios"] = list(clothing.attached_radio)
+
+	var/list/lines = list()
+	for(var/group in grouped_items)
+		var/list/item_texts = list()
+		for(var/obj/item/item as anything in grouped_items[group])
+			item_texts += "[icon2html(item, user)] <a href='byond://?src=[REF(src)];lookitem_desc_only=[REF(item)]'>\a [item]</a>"
+		lines += "&nbsp;&nbsp;- <b>[group]:</b> [english_list(item_texts)].\n"
+	return lines
 
 /mob/living/carbon/human/get_examine_text(mob/user, distance, is_adjacent, infix, suffix)
 	SHOULD_CALL_PARENT(FALSE) //Special snowflake case
@@ -104,12 +120,7 @@
 	if(wear_suit)
 		var/obj/item/clothing/suit/examined_outerwear = wear_suit
 		equipment_msg += "[get_examine_equipment_line(user, "Outerwear", wear_suit)]\n"
-		if(LAZYLEN(examined_outerwear?.accessories))
-			for(var/obj/item/clothing/accessory/accessory in examined_outerwear.accessories)
-				equipment_msg += "[get_examine_attachment_line(user, accessory)]\n"
-		if(examined_outerwear?.attached_radio)
-			var/obj/item/radio/headset/wrist/clip/radio = examined_outerwear.attached_radio
-			equipment_msg += SPAN_NOTICE("[get_examine_attachment_line(user, radio)]\n")
+		equipment_msg += get_examine_attachment_lines(user, examined_outerwear)
 
 		if(s_store && !skipsuitstorage)
 			equipment_msg += "[get_examine_equipment_line(user, "Suit storage", s_store)]\n"
@@ -119,12 +130,7 @@
 	if(w_uniform && !skipjumpsuit)
 		var/obj/item/clothing/under/examined_uniform = w_uniform
 		equipment_msg += "[get_examine_equipment_line(user, "Uniform", w_uniform)]\n"
-		if(LAZYLEN(examined_uniform?.accessories))
-			for(var/obj/item/clothing/accessory/accessory in examined_uniform.accessories)
-				equipment_msg += "[get_examine_attachment_line(user, accessory)]\n"
-		if(examined_uniform?.attached_radio)
-			var/obj/item/radio/headset/wrist/clip/radio = examined_uniform.attached_radio
-			equipment_msg += SPAN_NOTICE("[get_examine_attachment_line(user, radio)]\n")
+		equipment_msg += get_examine_attachment_lines(user, examined_uniform)
 
 	if(back)
 		equipment_msg += "[get_examine_equipment_line(user, "Back", back)]\n"

@@ -163,6 +163,7 @@
 	)
 
 /obj/item/clothing/accessory/armor_plate
+	examine_group = "Armor"
 	name = "corporate armor plate"
 	desc = "A particularly light-weight armor plate in stylish corporate black. Unfortunately, not very good if you hold it with your hands."
 	icon = 'icons/obj/item/clothing/suit/armor/modular_armor/modular_armor.dmi'
@@ -553,6 +554,7 @@
 //Cosmetic Accessories
 
 /obj/item/clothing/accessory/sec_commander_stripes
+	examine_group = "Insignia"
 	name = "head of security stripes"
 	desc = "A set of high visibility inserts for use in armour. This one declares the wearer as a Head of Security."
 	icon = 'icons/obj/item/clothing/accessory/armor/modular_armor_accessories.dmi'
@@ -563,6 +565,7 @@
 	flippable = FALSE
 
 /obj/item/clothing/accessory/flagpatch
+	examine_group = "Insignia"
 	name = "flagpatch"
 	desc = "A simple strip of fabric attached to a vest or helmet typically used to denote the wearer's \
 	organization or nationality."
