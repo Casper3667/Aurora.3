@@ -3,9 +3,15 @@
 		.=1
 	else
 		return 0
-	if(LAZYLEN(accessories) && restricted_accessory_slots && (A.slot in restricted_accessory_slots))
+	if(LAZYLEN(accessories))
+		var/matching_type_count = 0
 		for(var/obj/item/clothing/accessory/AC in accessories)
-			if (AC.slot == A.slot)
+			// Compare exact types so variants and subtypes retain their own limits.
+			if(AC.type == A.type)
+				matching_type_count++
+				if(matching_type_count >= 2)
+					return 0
+			if(restricted_accessory_slots && (A.slot in restricted_accessory_slots) && AC.slot == A.slot)
 				return 0
 
 /obj/item/clothing/proc/can_attach_radio(obj/item/radio/headset/wrist/clip/radio)
