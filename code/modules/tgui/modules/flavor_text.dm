@@ -1,11 +1,13 @@
 /datum/tgui_module/flavor_text
 	var/mob_name = ""
 	var/flavor_text = ""
+	var/portrait_url
 
-/datum/tgui_module/flavor_text/New(mob/user, var/set_mob_name, var/set_flavor_text)
+/datum/tgui_module/flavor_text/New(mob/user, var/set_mob_name, var/set_flavor_text, var/set_portrait_url)
 	..()
 	mob_name = set_mob_name
 	flavor_text = set_flavor_text
+	portrait_url = normalize_character_portrait_url(set_portrait_url)
 
 /datum/tgui_module/flavor_text/ui_interact(var/mob/user, var/datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)
@@ -17,4 +19,5 @@
 /datum/tgui_module/flavor_text/ui_data(mob/user)
 	var/list/data = list()
 	data["flavor_text"] = flavor_text
+	data["portrait_url"] = portrait_url
 	return data

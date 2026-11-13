@@ -567,13 +567,16 @@
 		to_chat(src, "<h2 class='alert'>OOC Warning:</h2>")
 		to_chat(src, SPAN_ALERT("Your flavor text is likely out of date! <a href='byond://?src=[REF(src)];flavor_change=1'>Change</a>"))
 
-/mob/proc/print_flavor_text()
-	if (flavor_text && flavor_text != "")
+/mob/proc/print_flavor_text(has_artwork = FALSE)
+	if ((flavor_text && flavor_text != "") || has_artwork)
 		var/msg = replacetext(flavor_text, "\n", " ")
-		if(length(msg) <= 40)
+		if(length(msg) <= 40 && !has_artwork)
 			return "<span class='message linkify'>[msg]</span>"
-		else
-			return "<span class='message linkify'>[copytext_preserve_html(msg, 1, 37)]...</span> <a href='byond://?src=[REF(src)];flavor_more=1'>More...</a>"
+		if(!msg)
+			return "<a href='byond://?src=[REF(src)];flavor_more=1'>View character artwork...</a>"
+		var/preview = length(msg) > 40 ? "[copytext_preserve_html(msg, 1, 37)]..." : msg
+		var/more_label = has_artwork ? "More... (includes character artwork)" : "More..."
+		return "<span class='message linkify'>[preview]</span> <a href='byond://?src=[REF(src)];flavor_more=1'>[more_label]</a>"
 
 /mob/verb/abandon_mob()
 	set name = "Respawn"
@@ -739,7 +742,11 @@
 		src << browse(null, t1)
 
 	if(href_list["flavor_more"])
-		var/datum/tgui_module/flavor_text/FT = new /datum/tgui_module/flavor_text(usr, capitalize_first_letters(name), flavor_text)
+		var/portrait_url
+		if(ishuman(src))
+			var/mob/living/carbon/human/human_mob = src
+			portrait_url = normalize_character_portrait_url(human_mob.flavor_texts["portrait"])
+		var/datum/tgui_module/flavor_text/FT = new /datum/tgui_module/flavor_text(usr, capitalize_first_letters(name), flavor_text, portrait_url)
 		FT.ui_interact(usr)
 
 	if(href_list["accent_tag"])

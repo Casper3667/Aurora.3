@@ -1833,7 +1833,7 @@
 	if(!shrink)
 		return flavor_text
 	else
-		return ..()
+		return ..(!!normalize_character_portrait_url(flavor_texts["portrait"]))
 
 /mob/living/carbon/human/getDNA()
 	if(species.flags & NO_SCAN)

@@ -12,6 +12,7 @@
 	S["flavor_texts_hands"]   >> pref.flavor_texts["hands"]
 	S["flavor_texts_legs"]    >> pref.flavor_texts["legs"]
 	S["flavor_texts_feet"]    >> pref.flavor_texts["feet"]
+	S["portrait_url"]         >> pref.flavor_texts["portrait"]
 
 	//Flavour text for robots.
 	S["flavour_texts_robot_Default"] >> pref.flavour_texts_robot["Default"]
@@ -31,6 +32,7 @@
 	S["flavor_texts_hands"]   << pref.flavor_texts["hands"]
 	S["flavor_texts_legs"]    << pref.flavor_texts["legs"]
 	S["flavor_texts_feet"]    << pref.flavor_texts["feet"]
+	S["portrait_url"]         << pref.flavor_texts["portrait"]
 
 	S["flavour_texts_robot_Default"] << pref.flavour_texts_robot["Default"]
 	for(var/module in GLOB.robot_module_types)
@@ -50,6 +52,7 @@
 		"flavour_hands" = "flavor_texts/hands",
 		"flavour_legs" = "flavor_texts/legs",
 		"flavour_feet" = "flavor_texts/feet",
+		"portrait_url" = "flavor_texts/portrait",
 		"robot_default" = "flavour_texts_robot/Default",
 		"signature" = "signature",
 		"signature_font" = "signfont"
@@ -79,6 +82,7 @@
 		"flavour_hands",
 		"flavour_legs",
 		"flavour_feet",
+		"portrait_url",
 		"robot_default",
 		"signature",
 		"signature_font",
@@ -102,6 +106,7 @@
 		"flavour_hands" = pref.flavor_texts["hands"],
 		"flavour_legs" = pref.flavor_texts["legs"],
 		"flavour_feet" = pref.flavor_texts["feet"],
+		"portrait_url" = pref.flavor_texts["portrait"],
 		"robot_default" = pref.flavour_texts_robot["Default"],
 		"signature" = pref.signature,
 		"signature_font" = pref.signfont
@@ -113,6 +118,7 @@
 	return var_list
 
 /datum/category_item/player_setup_item/general/flavor/sanitize_character(var/sql_load = 0)
+	pref.flavor_texts["portrait"] = normalize_character_portrait_url(pref.flavor_texts["portrait"])
 	if (!pref.signature)
 		pref.signature = "<i>[pref.real_name]</i>"
 	if (!pref.signfont)
@@ -138,6 +144,12 @@
 			"action" = "flavor_text",
 			"action_value" = region
 		))
+	character_fields += list(list(
+		"label" = "Portrait",
+		"value" = pref.flavor_texts["portrait"] ? TextPreview(pref.flavor_texts["portrait"], 60) : "None",
+		"action" = "portrait_url",
+		"note" = "Use Copy image address on an image uploaded to the Aurora forum gallery."
+	))
 	var/list/robot_fields = list(list(
 		"label" = "Default",
 		"value" = html_decode(TextPreview(pref.flavour_texts_robot["Default"], 60)),
@@ -202,6 +214,23 @@
 				var/msg = sanitize(input(usr,"Set the flavor text for your [href_list["flavor_text"]].","Flavor Text",html_decode(pref.flavor_texts[href_list["flavor_text"]])) as message, extra = 0)
 				if(CanUseTopic(user))
 					pref.flavor_texts[href_list["flavor_text"]] = msg
+		return TOPIC_REFRESH
+
+	else if(href_list["portrait_url"])
+		var/new_portrait_url = tgui_input_text(user, "Paste the image address copied from an image in the Aurora forum gallery. Gallery page links will not work; right-click the full image and use Copy image address. Leave this blank to remove the portrait.", "Character Portrait", pref.flavor_texts["portrait"], max_length = 512, encode = FALSE)
+		if(!CanUseTopic(user))
+			return TOPIC_NOACTION
+		if(isnull(new_portrait_url))
+			return TOPIC_NOACTION
+		new_portrait_url = trim(new_portrait_url)
+		if(!length(new_portrait_url))
+			pref.flavor_texts["portrait"] = null
+			return TOPIC_REFRESH
+		new_portrait_url = normalize_character_portrait_url(new_portrait_url)
+		if(!new_portrait_url)
+			tgui_alert(user, "That is not a supported Aurora forum gallery image address. The address must use HTTPS on forums.aurorastation.org and point directly to a PNG, JPEG, GIF, or WebP image in the forum's uploads directory.", "Invalid Portrait URL", list("OK"))
+			return TOPIC_NOACTION
+		pref.flavor_texts["portrait"] = new_portrait_url
 		return TOPIC_REFRESH
 
 	else if(href_list["flavour_text_robot"])

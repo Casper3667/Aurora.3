@@ -359,6 +359,23 @@
 /proc/trim(text)
 	return trim_left(trim_right(text))
 
+/// Returns a safe, canonical Aurora forum gallery image URL, or null if the URL is not allowed.
+/proc/normalize_character_portrait_url(url)
+	if(!istext(url))
+		return
+
+	url = trim(url)
+	if(!url || length(url) > 512)
+		return
+
+	// Gallery images are served from the forum's dated upload directories. Requiring the
+	// complete HTTPS origin prevents lookalike hosts, while the strict path prevents injection.
+	var/static/regex/gallery_image_url = regex(@"^https://forums\.aurorastation\.org/uploads/monthly_[0-9]{4}_[0-9]{2}/[a-z0-9%._~()+,\-]+\.(png|jpe?g|gif|webp)$", "i")
+	if(gallery_image_url.Find(url) != 1)
+		return
+
+	return url
+
 //Returns a string with the first element of the string capitalized, ignoring html-tags
 /proc/capitalize(t as text)
 	var/i = 1
