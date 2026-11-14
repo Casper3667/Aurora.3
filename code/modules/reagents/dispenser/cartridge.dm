@@ -17,7 +17,7 @@
 	var/spawn_reagent = null
 	var/label = ""
 	/// Whether this cartridge type uses object persistence on supported maps.
-	var/persistent_stock = FALSE
+	var/is_persistent = FALSE
 	/// Whether object persistence supplied a canonical amount before atom initialization.
 	var/tmp/persistent_stock_loaded = FALSE
 	/// Canonical amount supplied by object persistence.
@@ -29,13 +29,13 @@
 
 /** Returns only the cartridge's canonical reagent volume, ignoring contaminants and its mutable label. */
 /obj/item/reagent_containers/chem_disp_cartridge/proc/get_persistent_stock()
-	if(!persistent_stock || !reagents || !spawn_reagent)
+	if(!is_persistent || !reagents || !spawn_reagent)
 		return 0
 	return clamp(REAGENT_VOLUME(reagents, spawn_reagent), 0, reagents.maximum_volume)
 
 /** Restores canonical stock and discards any round-start contents which are not canonical for this type. */
 /obj/item/reagent_containers/chem_disp_cartridge/proc/apply_persistent_stock(saved_amount)
-	if(!persistent_stock || !reagents || !spawn_reagent || !isnum(saved_amount))
+	if(!is_persistent || !reagents || !spawn_reagent || !isnum(saved_amount))
 		return
 	saved_amount = clamp(saved_amount, 0, reagents.maximum_volume)
 	reagents.clear_reagents()
@@ -72,7 +72,7 @@
 	var/obj/structure/machinery/chemical_dispenser/dispenser = loc
 	if(istype(dispenser) && dispenser.persistent_cartridges)
 		dispenser.add_cartridge(src)
-	if(persistent_stock && SSpersistence.map_supports_persistence)
+	if(is_persistent && SSpersistence.map_supports_persistence)
 		SSpersistence.objectsRegisterTrack(src)
 
 /** Saves canonical contents and the mapped dispenser containing this cartridge, if any. */

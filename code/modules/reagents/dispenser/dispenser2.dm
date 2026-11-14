@@ -59,7 +59,7 @@
 	var/turf/dispenser_turf = get_turf(src)
 	if(!dispenser_turf || !is_station_level(dispenser_turf.z))
 		return
-	var/map_id = "[dispenser_turf.x]-[dispenser_turf.y]-[dispenser_turf.z]-[type]"
+	var/map_id = "[type]-[dispenser_turf.x]-[dispenser_turf.y]-[dispenser_turf.z]"
 	if(persistent_cartridge_id_suffix)
 		map_id += "-[persistent_cartridge_id_suffix]"
 	return map_id
