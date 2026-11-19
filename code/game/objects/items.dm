@@ -26,6 +26,21 @@
 	/// Dimensions of the icon file used when this item is worn, eg: hats.dmi (32x32 sprite, 64x64 sprite, etc.). Allows inhands/worn sprites to be of any size, but still centered on a mob properly
 	var/worn_y_dimension = 32
 
+	/// If TRUE, the held sprite is generated from this item's world icon instead of an authored left/right-hand sprite.
+	var/runtime_inhand = FALSE
+	/// If TRUE, the belt sprite is generated from this item's world icon.
+	var/runtime_belt = FALSE
+	/// If TRUE, the back sprite is generated from this item's world icon.
+	var/runtime_back = FALSE
+
+	/// Optional transform data used by runtime on-mob generation, keyed by tags such as "gen", "wielded", "onbelt", or "onback".
+	var/list/runtime_onmob_properties
+
+	/// Forces cached runtime on-mob icons to be regenerated on the next inventory update.
+	var/runtime_onmob_dirty = TRUE
+	/// Prevents repeated icon changes in one tick from scheduling redundant holder refreshes.
+	var/tmp/runtime_onmob_refresh_queued = FALSE
+
 	/**
 	 * Determines which slots an item can fit, eg. `SLOT_BACK`
 	 *
@@ -302,6 +317,9 @@
 		AddOverlays(overlay_image(icon,"[icon_state]_[worn_overlay]", flags=RESET_COLOR)) //add the overlay w/o coloration of the original sprite
 	if(has_accents)
 		AddOverlays(overlay_image(icon, "[icon_state]_acc", accent_color, accent_flags))
+	if(runtime_inhand || runtime_belt || runtime_back)
+		runtime_onmob_dirty = TRUE
+		queue_runtime_onmob_refresh()
 
 /obj/item/device
 	pickup_sound = 'sound/items/pickup/device.ogg'

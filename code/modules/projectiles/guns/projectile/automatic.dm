@@ -48,6 +48,8 @@
 	suppressed = FALSE
 	can_suppress = TRUE
 	suppressor_x_offset = 10
+	runtime_inhand = TRUE
+	runtime_belt = TRUE
 
 /obj/item/gun/projectile/automatic/mini_uzi/update_icon()
 	..()
@@ -239,6 +241,8 @@ ABSTRACT_TYPE(/obj/item/gun/projectile/automatic/rifle)
 	can_bayonet = TRUE
 	knife_x_offset = 23
 	knife_y_offset = 13
+	runtime_inhand = TRUE
+	runtime_back = TRUE
 
 /obj/item/gun/projectile/automatic/rifle/sts35/update_icon()
 	..()

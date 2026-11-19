@@ -263,6 +263,34 @@ ABSTRACT_TYPE(/obj/item/gun)
 /obj/item/gun/should_equip()
 	return TRUE
 
+/// Runtime transforms tuned for firearms. Individual guns can override these when their grip differs.
+/obj/item/gun/get_runtime_onmob_properties(tag)
+	if(tag == "gen")
+		return list(
+			"shrink" = 0.7,
+			"sx" = -3, "sy" = -5,
+			"nx" = 6, "ny" = -5,
+			"wx" = -4, "wy" = -3,
+			"ex" = 3, "ey" = -4,
+			"nturn" = 0, "sturn" = 90, "wturn" = 90, "eturn" = 0,
+			"nflip" = 0, "sflip" = NORTH, "wflip" = 0, "eflip" = 0,
+			"northabove" = 0, "southabove" = 1,
+			"eastabove" = 1, "westabove" = 0
+		)
+	if(tag == "wielded")
+		return list(
+			"shrink" = 0.7,
+			"sx" = -1, "sy" = -2,
+			"nx" = 1, "ny" = -2,
+			"wx" = -1, "wy" = -2,
+			"ex" = 1, "ey" = -2,
+			"nturn" = 0, "sturn" = 0, "wturn" = 0, "eturn" = 0,
+			"nflip" = 0, "sflip" = 0, "wflip" = 0, "eflip" = 0,
+			"northabove" = 0, "southabove" = 1,
+			"eastabove" = 1, "westabove" = 0
+		)
+	return ..()
+
 /obj/item/gun/update_icon()
 	..()
 	update_gun_actions()

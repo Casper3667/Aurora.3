@@ -979,7 +979,13 @@ There are several things that need to be remembered:
 				belt_layer = BELT_LAYER_ALT
 				null_layer = BELT_LAYER
 
-		overlays_raw[belt_layer] = belt.get_mob_overlay(src, mob_icon, mob_state, slot_belt_str)
+		var/list/runtime_overlays
+		if(belt.runtime_belt)
+			runtime_overlays = belt.get_runtime_onmob_appearances(src, "onbelt", FALSE, slot_belt_str)
+		if(length(runtime_overlays))
+			overlays_raw[belt_layer] = runtime_overlays
+		else
+			overlays_raw[belt_layer] = belt.get_mob_overlay(src, mob_icon, mob_state, slot_belt_str)
 		overlays_raw[null_layer] = null
 	else
 		overlays_raw[BELT_LAYER] = null
@@ -1103,7 +1109,13 @@ There are several things that need to be remembered:
 		if(!mob_state && back.item_state_slots && back.item_state_slots[slot_back_str])
 			mob_state = back.item_state_slots[slot_back_str]
 
-		overlays_raw[BACK_LAYER] = back.get_mob_overlay(src, mob_icon, mob_state, slot_back_str)
+		var/list/runtime_overlays
+		if(back.runtime_back)
+			runtime_overlays = back.get_runtime_onmob_appearances(src, "onback", FALSE, slot_back_str)
+		if(length(runtime_overlays))
+			overlays_raw[BACK_LAYER] = runtime_overlays
+		else
+			overlays_raw[BACK_LAYER] = back.get_mob_overlay(src, mob_icon, mob_state, slot_back_str)
 	else
 		overlays_raw[BACK_LAYER] = null
 
@@ -1184,34 +1196,40 @@ There are several things that need to be remembered:
 
 
 	if(l_hand)
-		var/mob_icon
-		var/mob_state = l_hand.item_state || l_hand.icon_state
-
-		if(l_hand.contained_sprite)
-			if(l_hand.icon_override)
-				mob_icon = l_hand.icon_override
-			else if(l_hand.sprite_sheets && l_hand.sprite_sheets[GET_BODY_TYPE])
-				mob_icon = l_hand.sprite_sheets[GET_BODY_TYPE]
-			else
-				mob_icon = l_hand.icon
-			l_hand.auto_adapt_species(src)
-			if(l_hand.item_state_slots && l_hand.item_state_slots[slot_l_hand_str])
-				mob_state = "[l_hand.item_state_slots[slot_l_hand_str]][WORN_LHAND]"
-			else
-				mob_state = "[UNDERSCORE_OR_NULL(l_hand.icon_species_in_hand ? l_hand.icon_species_tag : null)][l_hand.item_state][WORN_LHAND]"
+		var/list/runtime_overlays
+		if(l_hand.runtime_inhand)
+			runtime_overlays = l_hand.get_runtime_inhand_appearances(src, TRUE, slot_l_hand_str)
+		if(length(runtime_overlays))
+			overlays_raw[L_HAND_LAYER] = runtime_overlays
 		else
-			if(l_hand.item_state_slots && l_hand.item_state_slots[slot_l_hand_str])
-				mob_state = l_hand.item_state_slots[slot_l_hand_str]
+			var/mob_icon
+			var/mob_state = l_hand.item_state || l_hand.icon_state
 
-			if(l_hand.item_icons && (slot_l_hand_str in l_hand.item_icons))
-				mob_icon = l_hand.item_icons[slot_l_hand_str]
-			else if(l_hand.icon_override)
-				mob_icon = l_hand.icon_override
-				mob_state += WORN_LHAND
+			if(l_hand.contained_sprite)
+				if(l_hand.icon_override)
+					mob_icon = l_hand.icon_override
+				else if(l_hand.sprite_sheets && l_hand.sprite_sheets[GET_BODY_TYPE])
+					mob_icon = l_hand.sprite_sheets[GET_BODY_TYPE]
+				else
+					mob_icon = l_hand.icon
+				l_hand.auto_adapt_species(src)
+				if(l_hand.item_state_slots && l_hand.item_state_slots[slot_l_hand_str])
+					mob_state = "[l_hand.item_state_slots[slot_l_hand_str]][WORN_LHAND]"
+				else
+					mob_state = "[UNDERSCORE_OR_NULL(l_hand.icon_species_in_hand ? l_hand.icon_species_tag : null)][l_hand.item_state][WORN_LHAND]"
 			else
-				mob_icon = INV_L_HAND_DEF_ICON
+				if(l_hand.item_state_slots && l_hand.item_state_slots[slot_l_hand_str])
+					mob_state = l_hand.item_state_slots[slot_l_hand_str]
 
-		overlays_raw[L_HAND_LAYER] = l_hand.get_mob_overlay(src, mob_icon, mob_state, slot_l_hand_str)
+				if(l_hand.item_icons && (slot_l_hand_str in l_hand.item_icons))
+					mob_icon = l_hand.item_icons[slot_l_hand_str]
+				else if(l_hand.icon_override)
+					mob_icon = l_hand.icon_override
+					mob_state += WORN_LHAND
+				else
+					mob_icon = INV_L_HAND_DEF_ICON
+
+			overlays_raw[L_HAND_LAYER] = l_hand.get_mob_overlay(src, mob_icon, mob_state, slot_l_hand_str)
 	else
 		overlays_raw[L_HAND_LAYER] = null
 
@@ -1224,34 +1242,40 @@ There are several things that need to be remembered:
 		return
 
 	if(r_hand)
-		var/mob_icon
-		var/mob_state = r_hand.item_state || r_hand.icon_state
-
-		if(r_hand.contained_sprite)
-			if(r_hand.icon_override)
-				mob_icon = r_hand.icon_override
-			else if(r_hand.sprite_sheets && r_hand.sprite_sheets[GET_BODY_TYPE])
-				mob_icon = r_hand.sprite_sheets[GET_BODY_TYPE]
-			else
-				mob_icon = r_hand.icon
-			r_hand.auto_adapt_species(src)
-			if(r_hand.item_state_slots && r_hand.item_state_slots[slot_r_hand_str])
-				mob_state = "[r_hand.item_state_slots[slot_r_hand_str]][WORN_RHAND]"
-			else
-				mob_state = "[UNDERSCORE_OR_NULL(r_hand.icon_species_in_hand ? r_hand.icon_species_tag : null)][r_hand.item_state][WORN_RHAND]"
+		var/list/runtime_overlays
+		if(r_hand.runtime_inhand)
+			runtime_overlays = r_hand.get_runtime_inhand_appearances(src, FALSE, slot_r_hand_str)
+		if(length(runtime_overlays))
+			overlays_raw[R_HAND_LAYER] = runtime_overlays
 		else
-			if(r_hand.item_state_slots && r_hand.item_state_slots[slot_r_hand_str])
-				mob_state = r_hand.item_state_slots[slot_r_hand_str]
+			var/mob_icon
+			var/mob_state = r_hand.item_state || r_hand.icon_state
 
-			if(r_hand.item_icons && (slot_r_hand_str in r_hand.item_icons))
-				mob_icon = r_hand.item_icons[slot_r_hand_str]
-			else if(r_hand.icon_override)
-				mob_icon = r_hand.icon_override
-				mob_state += WORN_RHAND
+			if(r_hand.contained_sprite)
+				if(r_hand.icon_override)
+					mob_icon = r_hand.icon_override
+				else if(r_hand.sprite_sheets && r_hand.sprite_sheets[GET_BODY_TYPE])
+					mob_icon = r_hand.sprite_sheets[GET_BODY_TYPE]
+				else
+					mob_icon = r_hand.icon
+				r_hand.auto_adapt_species(src)
+				if(r_hand.item_state_slots && r_hand.item_state_slots[slot_r_hand_str])
+					mob_state = "[r_hand.item_state_slots[slot_r_hand_str]][WORN_RHAND]"
+				else
+					mob_state = "[UNDERSCORE_OR_NULL(r_hand.icon_species_in_hand ? r_hand.icon_species_tag : null)][r_hand.item_state][WORN_RHAND]"
 			else
-				mob_icon = INV_R_HAND_DEF_ICON
+				if(r_hand.item_state_slots && r_hand.item_state_slots[slot_r_hand_str])
+					mob_state = r_hand.item_state_slots[slot_r_hand_str]
 
-		overlays_raw[R_HAND_LAYER] = r_hand.get_mob_overlay(src, mob_icon, mob_state, slot_r_hand_str)
+				if(r_hand.item_icons && (slot_r_hand_str in r_hand.item_icons))
+					mob_icon = r_hand.item_icons[slot_r_hand_str]
+				else if(r_hand.icon_override)
+					mob_icon = r_hand.icon_override
+					mob_state += WORN_RHAND
+				else
+					mob_icon = INV_R_HAND_DEF_ICON
+
+			overlays_raw[R_HAND_LAYER] = r_hand.get_mob_overlay(src, mob_icon, mob_state, slot_r_hand_str)
 	else
 		overlays_raw[R_HAND_LAYER] = null
 
