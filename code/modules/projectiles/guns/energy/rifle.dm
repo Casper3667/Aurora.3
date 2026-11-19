@@ -61,6 +61,18 @@
 	firemodes = list()
 	modifystate = null
 
+/obj/item/gun/energy/rifle/laser/get_mob_overlay(mob/living/carbon/human/H, mob_icon, mob_state, slot, main_call)
+	var/tilt_wielded_sprite = type == /obj/item/gun/energy/rifle/laser && !wielded && (slot == slot_l_hand_str || slot == slot_r_hand_str)
+	if(tilt_wielded_sprite)
+		mob_state = "[item_state]-wielded[slot == slot_l_hand_str ? WORN_LHAND : WORN_RHAND]"
+
+	var/image/inhand_overlay = ..(H, mob_icon, mob_state, slot, main_call)
+	if(inhand_overlay && tilt_wielded_sprite)
+		var/matrix/tilt = matrix()
+		tilt.Turn(45)
+		inhand_overlay.transform = tilt
+	return inhand_overlay
+
 /obj/item/gun/energy/rifle/laser/practice
 	name = "\improper LR-6P practice laser rifle"
 	desc = "A modified version of the LR-6. It fires less concentrated laser beams that are visible, but ultimately harmless, designed for target practice."
