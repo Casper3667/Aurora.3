@@ -104,12 +104,12 @@
 			report_fiber_num++
 			pname = "Fiber report #[report_fiber_num]"
 			if(fibers.evidence)
-				info = "<b><font size=\"4\">Fiber anaylsis report #[report_fiber_num]</font></b><HR>"
+				info = "<b><font size=\"4\">Fiber analysis report #[report_fiber_num]</font></b><HR>"
 				info += "<b>Source locations:</b> "
 				info += "[english_list(fibers.source, "no sources were found", ", ", ", ", "")].<br><br>"
-				info += "Molecular analysis on [fibers.name] has determined the presence of unique fiber strings.<ul>"
+				info += "Material analysis has identified the following trace characteristics. Possible clothing matches are examples of compatible sources; they do not identify a particular garment or wearer.<ul>"
 				for(var/fiber in fibers.evidence)
-					info += "<li><b>Most likely match for fibers:</b> [fiber]</li>"
+					info += "<li>[fiber]</li>"
 				info += "</ul>"
 			else
 				info += "No fibers found."
